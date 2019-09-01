@@ -3,6 +3,7 @@
 
 uniform sampler2D myTextureSampler;
 uniform sampler2D normalMap;
+uniform sampler2D depthMap;
 uniform vec3 lightSource;
 uniform vec4 lightColor;
 uniform mat4 MV;
@@ -16,13 +17,54 @@ in vec3 LightDirection_cameraspace;
 
 in vec3 LightDirection_tangentspace;
 in vec3 EyeDirection_tangentspace;
-
+in vec3 Position_tangentspace;
 // Ouput data
 out vec3 color;
 
+float height_scale = 0.05;
+
+vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
+{
+    float height =  texture(depthMap, texCoords).r;
+    vec2 p = viewDir.xy / viewDir.z * (height * height_scale);
+    return texCoords - p;
+}
+
+vec2 SteepParallaxMapping(vec2 texCoords, vec3 viewDir)
+{
+    // number of depth layers
+    const float numLayers = 10;
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
+    // the amount to shift the texture coordinates per layer (from vector P)
+    vec2 P = viewDir.xy * height_scale;
+    vec2 deltaTexCoords = P / numLayers;
+    vec2  currentTexCoords     = texCoords;
+    float currentDepthMapValue = texture(depthMap, currentTexCoords).r;
+
+    while(currentLayerDepth < currentDepthMapValue)
+    {
+        // shift texture coordinates along direction of P
+        currentTexCoords -= deltaTexCoords;
+        // get depthmap value at current texture coordinates
+        currentDepthMapValue = texture(depthMap, currentTexCoords).r;
+        // get depth of next layer
+        currentLayerDepth += layerDepth;
+    }
+
+    return currentTexCoords;
+}
+
 void main()
 {
-    vec3 TextureNormal_tangentspace = normalize(texture( normalMap, UV ).rgb*2.0 - 1.0);
+    // offset texture coordinates with Parallax Mapping
+    vec3 viewDir   = normalize(EyeDirection_tangentspace - Position_tangentspace);
+    vec2 texCoords = SteepParallaxMapping(UV,  viewDir);
+    if(texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0)
+        discard;
+    vec3 TextureNormal_tangentspace = normalize(texture( normalMap, texCoords ).rgb*2.0 - 1.0);
 
     // Light emission properties
     // You probably want to put them as uniforms
@@ -30,7 +72,7 @@ void main()
     float LightPower = lightColor.w;
 
     // Material properties
-    vec3 MaterialDiffuseColor = texture( myTextureSampler, UV ).rgb;
+    vec3 MaterialDiffuseColor = texture( myTextureSampler, texCoords ).rgb;
     vec3 MaterialAmbientColor = vec3(0.1,0.1,0.1) * MaterialDiffuseColor;
     vec3 MaterialSpecularColor = vec3(0.3,0.3,0.3);
 

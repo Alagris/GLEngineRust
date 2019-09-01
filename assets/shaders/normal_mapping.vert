@@ -24,6 +24,7 @@ out vec3 LightDirection_cameraspace;
 
 out vec3 LightDirection_tangentspace;
 out vec3 EyeDirection_tangentspace;
+out vec3 Position_tangentspace;
 
 void main()
 {
@@ -56,6 +57,7 @@ void main()
     ));
     LightDirection_tangentspace = TBN * LightDirection_cameraspace;
     EyeDirection_tangentspace =  TBN * EyeDirection_cameraspace;
+    Position_tangentspace = TBN * Position_worldspace;
     // UV of the vertex. No special space for this one.
     UV = vertexUV;
 
