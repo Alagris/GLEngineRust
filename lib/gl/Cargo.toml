@@ -1,0 +1,13 @@
+[package]
+name = "gl"
+version = "0.1.0"
+authors = ["Alagris <alagris@gmail.com>"]
+edition = "2018"
+build = "build.rs"
+
+[build-dependencies]
+gl_generator = "0.11.0"
+gl_generator_profiling_struct = "0.1"
+
+[features]
+gl_debug = []
