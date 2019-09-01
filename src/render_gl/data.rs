@@ -30,6 +30,11 @@ impl f32_f32_f32 {
             offset as *const gl::types::GLvoid,
         );
     }
+
+    pub fn x(&self) -> f32{self.d0}
+    pub fn y(&self) -> f32{self.d1}
+    pub fn z(&self) -> f32{self.d2}
+
 }
 
 impl From<(f32, f32, f32)> for f32_f32_f32 {
@@ -183,6 +188,14 @@ impl VertexTexNor {
     }
     pub fn tex(&self) -> &f32_f32 {
         &self.tex
+    }
+    pub fn nor(&self) -> &f32_f32_f32 {
+        &self.nor
+    }
+    pub fn set_nor(&mut self,x:f32,y:f32,z:f32) {
+        self.nor.d0 = x;
+        self.nor.d1 = y;
+        self.nor.d2 = z;
     }
 }
 
