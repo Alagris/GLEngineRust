@@ -2,7 +2,7 @@ use gl;
 use crate::resources::{self, Resources};
 use std;
 use std::ffi::{CStr, CString};
-
+use crate::render_gl::texture::Texture;
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Failed to load resource {}", name)]
@@ -26,7 +26,10 @@ pub enum Error {
 pub struct UniformMatrix4fv{
     id : gl::types::GLint
 }
-
+#[derive(Debug, Copy, Clone)]
+pub struct UniformMatrix3fv{
+    id : gl::types::GLint
+}
 #[derive(Debug, Copy, Clone)]
 pub struct UniformVec3fv{
     id : gl::types::GLint
@@ -39,6 +42,16 @@ pub struct UniformVec4fv{
 
 #[derive(Debug, Copy, Clone)]
 pub struct Uniform1f{
+    id : gl::types::GLint
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Uniform1i{
+    id : gl::types::GLint
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct UniformTexture{
     id : gl::types::GLint
 }
 
@@ -132,6 +145,9 @@ impl Program {
     pub fn get_uniform_matrix4fv(&self, name: &str) -> Result<UniformMatrix4fv,String> {
         self.get_uniform(name).map(|id| UniformMatrix4fv{id})
     }
+    pub fn get_uniform_matrix3fv(&self, name: &str) -> Result<UniformMatrix3fv,String> {
+        self.get_uniform(name).map(|id| UniformMatrix3fv{id})
+    }
 
     pub fn get_uniform_vec3fv(&self, name: &str) -> Result<UniformVec3fv,String> {
         self.get_uniform(name).map(|id| UniformVec3fv{id})
@@ -144,7 +160,24 @@ impl Program {
     pub fn get_uniform_1f(&self, name: &str) -> Result<Uniform1f,String> {
         self.get_uniform(name).map(|id| Uniform1f{id})
     }
-
+    pub fn get_uniform_1i(&self, name: &str) -> Result<Uniform1i,String> {
+        self.get_uniform(name).map(|id| Uniform1i{id})
+    }
+    pub fn get_uniform_texture(&self, name: &str) -> Result<UniformTexture,String> {
+        self.get_uniform(name).map(|id| UniformTexture{id})
+    }
+    pub fn set_uniform_texture(&self, uniform: UniformTexture, texture: &Texture, texture_binding_unit: u32) {
+        unsafe {
+            self.gl.ActiveTexture(gl::TEXTURE0 + texture_binding_unit); // Texture unit 0
+            texture.bind();
+            self.gl.Uniform1i(uniform.id, texture_binding_unit as i32);
+        }
+    }
+    pub fn set_uniform_1i(&self, uniform: Uniform1i, value: i32) {
+        unsafe {
+            self.gl.Uniform1i(uniform.id, value);
+        }
+    }
     pub fn set_uniform_1f(&self, uniform: Uniform1f, value: f32) {
         unsafe {
             self.gl.Uniform1f(uniform.id, value);
@@ -154,6 +187,12 @@ impl Program {
     pub fn set_uniform_matrix4fv(&self, uniform: UniformMatrix4fv, value: &[f32]) {
         unsafe {
             self.gl.UniformMatrix4fv(uniform.id, 1, gl::FALSE, value.as_ptr());
+        }
+    }
+
+    pub fn set_uniform_matrix3fv(&self, uniform: UniformMatrix3fv, value: &[f32]) {
+        unsafe {
+            self.gl.UniformMatrix3fv(uniform.id, 1, gl::FALSE, value.as_ptr());
         }
     }
 

@@ -138,6 +138,9 @@ fn run() -> Result<(), failure::Error> {
     let debug_m_uniform = warn_ok(debug_shader_program.get_uniform_matrix4fv("M").map_err(err_msg));
     let debug_normal_length = warn_ok(debug_shader_program.get_uniform_1f("normalLength").map_err(err_msg));
 
+    let mv3x3_uniform = warn_ok(shader_program.get_uniform_matrix3fv("MV3x3").map_err(err_msg));
+    let texture_uniform = warn_ok(shader_program.get_uniform_texture("myTextureSampler").map_err(err_msg));
+    let texture_normal_uniform = warn_ok(shader_program.get_uniform_texture("normalMap").map_err(err_msg));
     let mvp_uniform = warn_ok(shader_program.get_uniform_matrix4fv("MVP").map_err(err_msg));
     let light_source_uniform = warn_ok(shader_program.get_uniform_vec3fv("lightSource").map_err(err_msg));
     let light_color_uniform = warn_ok(shader_program.get_uniform_vec4fv("lightColor").map_err(err_msg));
@@ -209,10 +212,10 @@ fn run() -> Result<(), failure::Error> {
 //        shader_program.set_uniform_vec3fv(view_pos_uniform, location3.as_slice());
         light_source_uniform.map(|u| shader_program.set_uniform_vec3fv(u, light_location.as_slice()));
         light_color_uniform.map(|u| shader_program.set_uniform_vec4fv(u, &[1f32, 1f32, 1f32, light_strength]));
-
-
+        texture_uniform.map(|u| shader_program.set_uniform_texture(u, &texture, 0));
+        texture_normal_uniform.map(|u| shader_program.set_uniform_texture(u, &texture_normal, 1));
+        mv3x3_uniform.map(|u| shader_program.set_uniform_matrix3fv(u, glm::mat4_to_mat3(&mv).as_slice()));
         model.bind();
-        texture.bind();
         model.draw_triangles();
 //        unsafe {
 //            gl.DrawArrays(

@@ -13,15 +13,16 @@ in vec3 Normal_cameraspace;
 in vec3 EyeDirection_cameraspace;
 in vec3 LightDirection_cameraspace;
 
+
+in vec3 LightDirection_tangentspace;
+in vec3 EyeDirection_tangentspace;
+
 // Ouput data
 out vec3 color;
 
 void main()
 {
-
-    normal = texture(normalMap, UV).rgb;
-    // transform normal vector to range [-1,1]
-    normal = normalize(normal * 2.0 - 1.0);
+    vec3 TextureNormal_tangentspace = normalize(texture( normalMap, UV ).rgb*2.0 - 1.0);
 
     // Light emission properties
     // You probably want to put them as uniforms
@@ -37,7 +38,7 @@ void main()
     float distance = length( lightSource - Position_worldspace ) / LightPower;
 
     // Normal of the computed fragment, in camera space
-    vec3 n = normalize( Normal_cameraspace );
+    vec3 n = TextureNormal_tangentspace;
     // Direction of the light (from the fragment to the light)
     vec3 l = normalize( LightDirection_cameraspace );
     // Cosine of the angle between the normal and the light direction,
@@ -66,24 +67,4 @@ void main()
         MaterialSpecularColor * LightColor * pow(cosAlpha,32) / (distance*distance);
 
 
-//    float ambientStrength = 0.1;
-//    float lightStrnegth = lightColor.w;
-//    vec3 ambient = ambientStrength * vec3(lightColor);
-//
-//    vec3 norm = normalize(IN.Normal);
-//    vec3 lightDir = normalize(lightSource - IN.FragPos);
-//    float diff = abs(dot(norm, lightDir));
-//    vec3 diffuse = diff * vec3(lightColor);
-//
-//    float specularStrength = 0.5;
-//    vec3 viewDir = normalize(-IN.FragPosView);
-//    vec3 reflectDir = reflect(-lightDir, norm);
-//    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-//    vec3 specular = specularStrength * spec * vec3(lightColor);
-//
-//
-//    float lightDistance =  distance(lightSource,IN.FragPos)/ lightColor.w ;
-//    vec4 objectColor = texture( myTextureSampler, IN.UV ).rgba;
-//    vec4 result = vec4(ambient + diffuse / (lightDistance*lightDistance ),1.0) * objectColor ;
-//    Color = result;
 }

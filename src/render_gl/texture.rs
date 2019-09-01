@@ -45,6 +45,10 @@ impl Texture {
             self.gl.BindTexture(gl::TEXTURE_2D, self.texture);
         }
     }
+
+    pub fn id(&self) -> gl::types::GLuint{
+        self.texture
+    }
 }
 
 impl Drop for Texture{

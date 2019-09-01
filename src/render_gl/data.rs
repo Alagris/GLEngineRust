@@ -177,5 +177,53 @@ impl VertexTexNor {
     pub fn new_t(pos: (f32, f32, f32), nor: (f32, f32, f32), tex: (f32, f32)) -> Self {
         Self::new(pos.into(), nor.into(), tex.into())
     }
+
+    pub fn pos(&self) -> &f32_f32_f32 {
+        &self.pos
+    }
+    pub fn tex(&self) -> &f32_f32 {
+        &self.tex
+    }
+}
+
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+#[derive(VertexAttribPointers)]
+pub struct VertexTexNorTan {
+    #[location = 0]
+    pos: f32_f32_f32,
+    //position
+    #[location = 2]
+    tex: f32_f32,
+    //texture
+    #[location = 3]
+    nor: f32_f32_f32,
+    //normal
+    #[location = 4]
+    tan: f32_f32_f32,
+    //tangent
+    #[location = 5]
+    bitan: f32_f32_f32, //bitangent
+}
+
+impl VertexTexNorTan {
+    pub fn new(pos: f32_f32_f32, nor: f32_f32_f32, tex: f32_f32, tan: f32_f32_f32, bitan: f32_f32_f32) -> Self {
+        Self {
+            pos,
+            tex,
+            nor,
+            tan,
+            bitan,
+        }
+    }
+
+    pub fn convert(ver_tex_nor: VertexTexNor, tan: f32_f32_f32, bitan: f32_f32_f32) -> Self {
+        Self::new(ver_tex_nor.pos, ver_tex_nor.nor, ver_tex_nor.tex, tan, bitan)
+    }
+
+    pub fn new_t(pos: (f32, f32, f32), nor: (f32, f32, f32), tex: (f32, f32), tan: (f32, f32, f32), bitan: (f32, f32, f32)) -> Self {
+        Self::new(pos.into(), nor.into(), tex.into(), tan.into(), bitan.into())
+    }
 }
 
