@@ -1,7 +1,5 @@
 #version 330 core
 
-
-uniform sampler2D myTextureSampler;
 uniform vec3 lightSource;
 uniform vec4 lightColor;
 uniform mat4 MV;
@@ -15,6 +13,26 @@ in vec3 LightDirection_cameraspace;
 // Ouput data
 out vec3 color;
 
+vec3 c(float h){
+    vec3 bottom = vec3(0., 0., 153./255.) ;
+    vec3 surface = vec3(102./255., 204./255., 1.);
+    vec3 shore = vec3(1., 1, 204./255.);
+    vec3 plain = vec3(0., 153./255., 51./255.);
+    float sea_lvl = 0.5;
+    float grass = 1.;
+    float top = 3.;
+    if(h > sea_lvl){
+        if(h > grass){
+            if( h> top){
+                return mix(plain,vec3(1.,1.,1.),(h-top)/(top));
+            }
+            return mix(shore,plain,(h-grass)/(top-grass));
+        }
+        return mix(surface,shore,(h-sea_lvl)/(grass-sea_lvl));
+    }
+    return mix(bottom,surface,(h)/(sea_lvl));
+}
+
 void main()
 {
 
@@ -23,8 +41,9 @@ void main()
     vec3 LightColor = vec3(lightColor);
     float LightPower = lightColor.w;
 
+
     // Material properties
-    vec3 MaterialDiffuseColor = texture( myTextureSampler, UV ).rgb;
+    vec3 MaterialDiffuseColor = c(Position_worldspace.y);
     vec3 MaterialAmbientColor = vec3(0.1,0.1,0.1) * MaterialDiffuseColor;
     vec3 MaterialSpecularColor = vec3(0.3,0.3,0.3);
 
@@ -56,7 +75,7 @@ void main()
         // Ambient : simulates indirect lighting
         MaterialAmbientColor +
         // Diffuse : "color" of the object
-        MaterialDiffuseColor * LightColor  * cosTheta / (distance*distance) +
+        MaterialDiffuseColor * LightColor  * cosTheta / (distance) +
         // Specular : reflective highlight, like a mirror
         MaterialSpecularColor * LightColor * pow(cosAlpha,32) / (distance*distance);
 

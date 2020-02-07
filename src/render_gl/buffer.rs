@@ -25,6 +25,10 @@ impl<B> Buffer<B> where B: BufferType {
         }
     }
 
+    pub fn target()->gl::types::GLuint{
+        B::BUFFER_TYPE
+    }
+
     pub fn bind(&self) {
         unsafe {
             self.gl.BindBuffer(B::BUFFER_TYPE, self.vbo);

@@ -28,10 +28,13 @@ impl Model {
         Self::new(&mut reader, gl)
     }
 
-
     pub fn new<T: std::io::Read>(input: &mut BufReader<T>, gl: &gl::Gl) -> Result<Model, failure::Error> {
         let ver_ind = load_ver_nor_tex(input)?;
-        let (vertices, indices) = compute_tangents(ver_ind)?;
+        Self::new_from_ver_nor_tex(ver_ind, gl)
+    }
+
+    pub fn new_from_ver_nor_tex((ver,indices): (Vec<VertexTexNor>, Vec<i32>), gl: &gl::Gl) -> Result<Model, failure::Error> {
+        let vertices= compute_tangents(ver,&indices)?;
         let vbo = ArrayBuffer::new(&gl);
         let ebo = ElementArrayBuffer::new(&gl);
         let vao = VertexArray::new(&gl);
@@ -52,6 +55,21 @@ impl Model {
         vao.unbind();
 
         Ok(Model { vertices, indices, vbo, ebo, vao, gl: gl.clone() })
+    }
+
+    pub fn update_vbo(&mut self, vbo: Vec<VertexTexNor>) -> Result<(), failure::Error> {
+        if self.vertices.len() == vbo.len() {
+            let vertices = compute_tangents(vbo, &self.indices)?;
+            self.vertices = vertices;
+            self.vbo.bind();
+            unsafe {
+                self.gl.BufferSubData(ArrayBuffer::target(), 0, (self.vertices.len() * ::std::mem::size_of::<VertexTexNorTan>()) as gl::types::GLsizeiptr, self.vertices.as_ptr() as *const gl::types::GLvoid);
+            }
+            self.vbo.unbind();
+            Ok(())
+        } else {
+            Err("Incorrect size").map_err(err_msg)
+        }
     }
 
     pub fn bind(&self) {
@@ -123,7 +141,7 @@ fn load_ver_nor_tex<T: std::io::Read>(input: &mut BufReader<T>) -> Result<(Vec<V
     Ok((vertices, indices))
 }
 
-fn compute_tangents((vertices, indices): (Vec<VertexTexNor>, Vec<i32>)) -> Result<(Vec<VertexTexNorTan>, Vec<i32>), failure::Error> {
+fn compute_tangents(vertices:Vec<VertexTexNor>, indices:&Vec<i32>) -> Result<Vec<VertexTexNorTan>, failure::Error> {
     let mut tangents = vec![glm::vec3(0f32, 0f32, 0f32); vertices.len()];
     let mut bitangents = vec![glm::vec3(0f32, 0f32, 0f32); vertices.len()];
     let mut counts = vec![0; vertices.len()];
@@ -167,7 +185,7 @@ fn compute_tangents((vertices, indices): (Vec<VertexTexNor>, Vec<i32>)) -> Resul
             counts[i] = post_size;
         }
     }
-    fn orthogonalize(normal:&f32_f32_f32,tangent:&glm::TMat<f32,U3,U1>,bitangent:&glm::TMat<f32,U3,U1>) -> f32_f32_f32{
+    fn orthogonalize(normal: &f32_f32_f32, tangent: &glm::TMat<f32, U3, U1>, bitangent: &glm::TMat<f32, U3, U1>) -> f32_f32_f32 {
         let n = glm::vec3(normal.x(), normal.y(), normal.z());
         let t = tangent;
         let b = bitangent;
@@ -176,17 +194,17 @@ fn compute_tangents((vertices, indices): (Vec<VertexTexNor>, Vec<i32>)) -> Resul
         let t = glm::normalize(&(t - n * glm::dot(&n, &t)));
 
         // Calculate handedness
-        let c = glm::cross::<f32,U1>(&n, &t);
+        let c = glm::cross::<f32, U1>(&n, &t);
         let t = if glm::dot(&c, &b) < 0.0f32 {
             t * -1.0f32
-        }else{
+        } else {
             t
         };
         f32_f32_f32::new(t.x, t.y, t.z)
     }
 
     let converted_vertices = vertices.iter().zip(tangents.iter()).zip(bitangents.iter()).map(|((v, &t), &b)|
-        VertexTexNorTan::convert(*v, orthogonalize(v.nor(),&t,&b), f32_f32_f32::new(b.x, b.y, b.z))
+        VertexTexNorTan::convert(*v, orthogonalize(v.nor(), &t, &b), f32_f32_f32::new(b.x, b.y, b.z))
     ).collect();
-    Ok((converted_vertices, indices))
+    Ok(converted_vertices)
 }

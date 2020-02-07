@@ -10,3 +10,4 @@ pub mod fps;
 pub mod texture;
 pub mod model;
 pub mod physics_model;
+pub mod terrain;

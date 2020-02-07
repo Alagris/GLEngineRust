@@ -14,6 +14,7 @@ image = "0.22.1"
 collada = "0.12.0"
 obj = "0.9.0"
 genmesh = "0.6.2"
+rand = "0.7.3"
 [dependencies.sdl2]
 version = "0.32"
 features = ["bundled", "static-link"]

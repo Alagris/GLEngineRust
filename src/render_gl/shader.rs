@@ -2,7 +2,8 @@ use gl;
 use crate::resources::{self, Resources};
 use std;
 use std::ffi::{CStr, CString};
-use crate::render_gl::texture::Texture;
+use crate::render_gl::texture::{Texture, TextureCube, Cubemap};
+
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Failed to load resource {}", name)]
@@ -23,36 +24,43 @@ pub enum Error {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct UniformMatrix4fv{
-    id : gl::types::GLint
-}
-#[derive(Debug, Copy, Clone)]
-pub struct UniformMatrix3fv{
-    id : gl::types::GLint
-}
-#[derive(Debug, Copy, Clone)]
-pub struct UniformVec3fv{
-    id : gl::types::GLint
+pub struct UniformMatrix4fv {
+    id: gl::types::GLint
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct UniformVec4fv{
-    id : gl::types::GLint
+pub struct UniformMatrix3fv {
+    id: gl::types::GLint
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct Uniform1f{
-    id : gl::types::GLint
+pub struct UniformVec3fv {
+    id: gl::types::GLint
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct Uniform1i{
-    id : gl::types::GLint
+pub struct UniformVec4fv {
+    id: gl::types::GLint
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct UniformTexture{
-    id : gl::types::GLint
+pub struct Uniform1f {
+    id: gl::types::GLint
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Uniform1i {
+    id: gl::types::GLint
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct UniformTexture {
+    id: gl::types::GLint
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct UniformCubeTexture {
+    id: gl::types::GLint
 }
 
 pub struct Program {
@@ -70,10 +78,10 @@ impl Program {
             .collect::<Vec<String>>();
 
         let geom_file = format!("{}.geom", name);
-        if res.has_file(&geom_file){
+        if res.has_file(&geom_file) {
             resource_names.push(geom_file);
-        }else{
-            println!("Shader {} ignored",geom_file);
+        } else {
+            println!("Shader {} ignored", geom_file);
         }
 
         let shaders = resource_names
@@ -106,7 +114,7 @@ impl Program {
         }
 
         if success == 0 {
-            return Err(Self::query_error_string(gl,program_id));
+            return Err(Self::query_error_string(gl, program_id));
         }
 
         for shader in shaders {
@@ -131,41 +139,48 @@ impl Program {
         }
     }
 
-    fn get_uniform(&self, name: &str) -> Result<gl::types::GLint,String> {
+    fn get_uniform(&self, name: &str) -> Result<gl::types::GLint, String> {
         let id: gl::types::GLint;
         unsafe {
             id = self.gl.GetUniformLocation(self.id, CString::new(name).unwrap().into_raw());
         }
         if id == -1 {
-            return Err(["uniform '",name,"' not found!"].join(""));
+            return Err(["uniform '", name, "' not found!"].join(""));
         }
         Ok(id)
     }
 
-    pub fn get_uniform_matrix4fv(&self, name: &str) -> Result<UniformMatrix4fv,String> {
-        self.get_uniform(name).map(|id| UniformMatrix4fv{id})
+    pub fn get_uniform_matrix4fv(&self, name: &str) -> Result<UniformMatrix4fv, String> {
+        self.get_uniform(name).map(|id| UniformMatrix4fv { id })
     }
-    pub fn get_uniform_matrix3fv(&self, name: &str) -> Result<UniformMatrix3fv,String> {
-        self.get_uniform(name).map(|id| UniformMatrix3fv{id})
-    }
-
-    pub fn get_uniform_vec3fv(&self, name: &str) -> Result<UniformVec3fv,String> {
-        self.get_uniform(name).map(|id| UniformVec3fv{id})
+    pub fn get_uniform_matrix3fv(&self, name: &str) -> Result<UniformMatrix3fv, String> {
+        self.get_uniform(name).map(|id| UniformMatrix3fv { id })
     }
 
-    pub fn get_uniform_vec4fv(&self, name: &str) -> Result<UniformVec4fv,String> {
-        self.get_uniform(name).map(|id| UniformVec4fv{id})
+    pub fn get_uniform_vec3fv(&self, name: &str) -> Result<UniformVec3fv, String> {
+        self.get_uniform(name).map(|id| UniformVec3fv { id })
     }
 
-    pub fn get_uniform_1f(&self, name: &str) -> Result<Uniform1f,String> {
-        self.get_uniform(name).map(|id| Uniform1f{id})
+    pub fn get_uniform_vec4fv(&self, name: &str) -> Result<UniformVec4fv, String> {
+        self.get_uniform(name).map(|id| UniformVec4fv { id })
     }
-    pub fn get_uniform_1i(&self, name: &str) -> Result<Uniform1i,String> {
-        self.get_uniform(name).map(|id| Uniform1i{id})
+
+    pub fn get_uniform_1f(&self, name: &str) -> Result<Uniform1f, String> {
+        self.get_uniform(name).map(|id| Uniform1f { id })
     }
-    pub fn get_uniform_texture(&self, name: &str) -> Result<UniformTexture,String> {
-        self.get_uniform(name).map(|id| UniformTexture{id})
+
+    pub fn get_uniform_1i(&self, name: &str) -> Result<Uniform1i, String> {
+        self.get_uniform(name).map(|id| Uniform1i { id })
     }
+
+    pub fn get_uniform_texture(&self, name: &str) -> Result<UniformTexture, String> {
+        self.get_uniform(name).map(|id| UniformTexture { id })
+    }
+
+    pub fn get_uniform_cube_texture(&self, name: &str) -> Result<UniformCubeTexture, String> {
+        self.get_uniform(name).map(|id| UniformCubeTexture { id })
+    }
+
     pub fn set_uniform_texture(&self, uniform: UniformTexture, texture: &Texture, texture_binding_unit: u32) {
         unsafe {
             self.gl.ActiveTexture(gl::TEXTURE0 + texture_binding_unit); // Texture unit 0
@@ -173,6 +188,15 @@ impl Program {
             self.gl.Uniform1i(uniform.id, texture_binding_unit as i32);
         }
     }
+
+    pub fn set_uniform_cube_texture(&self, uniform: UniformCubeTexture, texture: &Cubemap, texture_binding_unit: u32) {
+        unsafe {
+            self.gl.ActiveTexture(gl::TEXTURE0 + texture_binding_unit); // Texture unit 0
+            texture.bind();
+            self.gl.Uniform1i(uniform.id, texture_binding_unit as i32);
+        }
+    }
+
     pub fn set_uniform_1i(&self, uniform: Uniform1i, value: i32) {
         unsafe {
             self.gl.Uniform1i(uniform.id, value);
@@ -208,7 +232,7 @@ impl Program {
         }
     }
 
-    fn query_error_string(gl: &gl::Gl, program_id: gl::types::GLuint)->String{
+    fn query_error_string(gl: &gl::Gl, program_id: gl::types::GLuint) -> String {
         let mut len: gl::types::GLint = 0;
         unsafe {
             gl.GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
@@ -257,7 +281,7 @@ impl Shader {
             inner: e,
         })?;
 
-        println!("Shader {} loaded",name);
+        println!("Shader {} loaded", name);
         Shader::from_source(gl, &source, shader_kind).map_err(|message| Error::CompileError {
             name: name.into(),
             message,
