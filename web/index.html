@@ -1,0 +1,21 @@
+<html>
+<head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <script type="text/javascript" src="ace/build/src/ace.js"></script>
+    <script type="text/javascript" src="ace/build/src/ext-language_tools.js"></script>
+    <script type="text/javascript" src="ace/build/src/mode-mealy.js"></script>
+    <link rel="stylesheet" href="index.css">
+
+</head>
+<body>
+    <canvas id="canvas" height="150" width="150"></canvas>
+    <!-- Note the usage of `type=module` here as this is an ES6 module -->
+    <script type="module">
+        import init from './pkg/GLEngineRust_WASM.js';
+        async function run() {
+            await init();
+        }
+        run()
+    </script>
+</body>
+</html>
