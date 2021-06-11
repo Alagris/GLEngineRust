@@ -1,13 +1,12 @@
 [package]
 name = "gl"
 version = "0.1.0"
-authors = ["Alagris <alagris@gmail.com>"]
 edition = "2018"
-build = "build.rs"
 
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
 [build-dependencies]
-gl_generator = "0.11.0"
-gl_generator_profiling_struct = "0.1"
-
+gl_generator = "0.14.0"
 [features]
-gl_debug = []
+debug = []

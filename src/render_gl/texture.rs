@@ -49,7 +49,7 @@ impl Tex<Texture2D> {
     pub fn new(file: &Path, gl: &gl::Gl) -> Result<Self, failure::Error> {
         let mut texture = 0;
         let img = image::open(file).map_err(err_msg)?;
-        let data = img.raw_pixels();
+        let data = img.as_bytes();
         unsafe {
             gl.GenTextures(1, &mut texture);
             Self::bind_texture(gl, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
@@ -96,7 +96,7 @@ impl Tex<TextureCube> {
                               0,
                               gl::RGB,
                               gl::UNSIGNED_BYTE,
-                              img.raw_pixels().as_ptr() as *const gl::types::GLvoid);
+                              img.as_bytes().as_ptr() as *const gl::types::GLvoid);
             }
         }
         unsafe {

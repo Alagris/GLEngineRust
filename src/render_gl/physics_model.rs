@@ -1,20 +1,17 @@
 use gl;
 use glm;
-use glm::U3;
-use glm::U4;
-use glm::U1;
 use super::fps::FpsCounter;
 
-pub trait Scalar: glm::Real + Copy {
+pub trait Scalar: glm::RealField + Copy {
     fn cast(x: i32) -> Self;
 }
 
 pub struct CollisionVector<N: Scalar> {
-    val: glm::TVec<N, U3>
+    val: glm::TVec<N, 3>
 }
 
 impl<N: Scalar> CollisionVector<N> {
-    pub fn new(val: glm::TVec<N, U3>) -> Self {
+    pub fn new(val: glm::TVec<N, 3>) -> Self {
         Self { val }
     }
 }
@@ -33,10 +30,10 @@ impl Scalar for f64 {
 
 pub struct PhysicsModel<N: Scalar> {
     rotation: glm::Qua<N>,
-    location: glm::TVec<N, U3>,
-    scale: glm::TVec<N, U3>,
-    velocity: glm::TVec<N, U3>,
-    acceleration: glm::TVec<N, U3>,
+    location: glm::TVec<N, 3>,
+    scale: glm::TVec<N, 3>,
+    velocity: glm::TVec<N, 3>,
+    acceleration: glm::TVec<N, 3>,
     mass: N,
 }
 
@@ -51,10 +48,10 @@ impl<N: Scalar> PhysicsModel<N> {
         glm::translate(&glm::scale(&glm::quat_to_mat4(&self.rotation), &self.scale), &self.location)
     }
     pub fn new_from_vectors(rotation: glm::Qua<N>,
-                            location: glm::TVec<N, U3>,
-                            scale: glm::TVec<N, U3>,
-                            velocity: glm::TVec<N, U3>,
-                            acceleration: glm::TVec<N, U3>,
+                            location: glm::TVec<N, 3>,
+                            scale: glm::TVec<N, 3>,
+                            velocity: glm::TVec<N, 3>,
+                            acceleration: glm::TVec<N, 3>,
                             mass: N) -> PhysicsModel<N> {
         PhysicsModel {
             rotation,
@@ -76,11 +73,11 @@ impl<N: Scalar> PhysicsModel<N> {
         }
     }
 
-    pub fn location(&self) -> &glm::TVec<N, U3> {
+    pub fn location(&self) -> &glm::TVec<N, 3> {
         &self.location
     }
 
-    pub fn velocity(&self) -> &glm::TVec<N, U3> {
+    pub fn velocity(&self) -> &glm::TVec<N, 3> {
         &self.velocity
     }
 

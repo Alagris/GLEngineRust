@@ -192,7 +192,7 @@ impl Graph {
         for y in 0..h {
             for x in 0..w {
                 let (px,py) = triangular_grid_vertex_to_2d_point(x, y, triangle_size);
-                g.vertices.push(Vertex::new((px+rng.gen_range(-triangle_size/2.,triangle_size/2.),py+rng.gen_range(-triangle_size/2.,triangle_size/2.)),
+                g.vertices.push(Vertex::new((px+rng.gen_range(-triangle_size/2.0 .. triangle_size/2.),py+rng.gen_range(-triangle_size/2. ..triangle_size/2.)),
                     x == 0 || y == 0 || x == w - 1 || y == h - 1,
                     reg_triangle_area(triangle_size)));
             }

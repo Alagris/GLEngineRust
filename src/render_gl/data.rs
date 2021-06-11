@@ -43,6 +43,12 @@ impl From<(f32, f32, f32)> for f32_f32_f32 {
     }
 }
 
+impl From<&[f32;3]> for f32_f32_f32 {
+    fn from(other: &[f32;3]) -> Self {
+        f32_f32_f32::new(other[0], other[1], other[2])
+    }
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
@@ -77,7 +83,11 @@ impl From<(f32, f32)> for f32_f32 {
         f32_f32::new(other.0, other.1)
     }
 }
-
+impl From<&[f32;2]> for f32_f32 {
+    fn from(other: &[f32;2]) -> Self {
+        f32_f32::new(other[0], other[1])
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
@@ -179,7 +189,7 @@ impl VertexTexNor {
         }
     }
 
-    pub fn new_t(pos: (f32, f32, f32), nor: (f32, f32, f32), tex: (f32, f32)) -> Self {
+    pub fn new_t<P:Into<f32_f32_f32>,N:Into<f32_f32_f32>, T:Into<f32_f32>>(pos: P, nor: N, tex: T) -> Self {
         Self::new(pos.into(), nor.into(), tex.into())
     }
 

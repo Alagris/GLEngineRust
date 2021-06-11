@@ -1,27 +1,21 @@
 [package]
-name = "Rust"
+name = "GLEngineRust"
 version = "0.1.0"
-authors = ["Alagris <alagris@gmail.com>"]
+authors = ["Alagris <alagris12358@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-gl = { path = "lib/gl" }
-#gl = "0.12.0"
-failure = "0.1.5"
+sdl2 = {version="0.34.5", features = ["bundled", "static-link"] }
+gl = { path = "lib/gl"}
 render_gl_derive = { path = "render_gl_derive" }
-nalgebra-glm = "0.3"
-image = "0.22.1"
-collada = "0.12.0"
-obj = "0.9.0"
+failure = "0.1.8"
+nalgebra-glm = "0.13.0"
+image = "0.23.14"
+collada = "0.13.0"
+obj = "0.10.2"
 genmesh = "0.6.2"
-rand = "0.7.3"
-[dependencies.sdl2]
-version = "0.32"
-features = ["bundled", "static-link"]
-
-
+rand = "0.8.3"
 [features]
-#gl_debug = ["gl/debug"]
-
+gl_debug = ["gl/debug"]
 [build-dependencies]
-walkdir = "2.1"
+walkdir = "2.3.2"

@@ -11,6 +11,7 @@ use std::collections::hash_map::Entry;
 use std::net::Incoming;
 use glm::U3;
 use glm::U1;
+use std::path::Path;
 
 pub struct Model {
     vertices: Vec<VertexTexNorTan>,
@@ -22,13 +23,8 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn from_file(path: &str, gl: &gl::Gl) -> Result<Model, failure::Error> {
-        let file = File::open(path)?;
-        let mut reader = BufReader::new(file);
-        Self::new(&mut reader, gl)
-    }
 
-    pub fn new<T: std::io::Read>(input: &mut BufReader<T>, gl: &gl::Gl) -> Result<Model, failure::Error> {
+    pub fn new(input: impl AsRef<Path>, gl: &gl::Gl) -> Result<Model, failure::Error> {
         let ver_ind = load_ver_nor_tex(input)?;
         Self::new_from_ver_nor_tex(ver_ind, gl)
     }
@@ -94,29 +90,26 @@ impl Model {
     }
 }
 
-fn load_ver_nor_tex<T: std::io::Read>(input: &mut BufReader<T>) -> Result<(Vec<VertexTexNor>, Vec<i32>), failure::Error> {
-    let obj = Obj::<SimplePolygon>::load_buf(input)?;
+fn load_ver_nor_tex(input: impl AsRef<Path>) -> Result<(Vec<VertexTexNor>, Vec<i32>), failure::Error> {
+    let obj = Obj::load(input)?;
 
     let mut vertices: Vec<VertexTexNor> = vec![];
     let mut indices: Vec<i32> = vec![];
     type Cache = HashMap<usize, HashMap<usize, HashMap<usize, usize>>>;
     let mut cache: Cache = HashMap::new();
 
-    fn insert_to_cache(cache: &mut Cache, vertices: &mut Vec<VertexTexNor>, obj: &Obj<Vec<IndexTuple>>, vertex: usize, normal: usize, tex: usize) -> Result<usize, failure::Error> {
+    fn insert_to_cache(cache: &mut Cache, vertices: &mut Vec<VertexTexNor>, obj: &Obj, vertex: usize, normal: usize, tex: usize) -> Result<usize, failure::Error> {
         let vertex_entry = cache.entry(vertex).or_insert(HashMap::new());
         let normal_entry = vertex_entry.entry(normal).or_insert(HashMap::new());
         let tex_entry = normal_entry.entry(tex);
         match tex_entry {
             Entry::Occupied(e) => Ok(*e.get()),
             Entry::Vacant(e) => {
-                let vertex_value = obj.position.get(vertex).ok_or("index pointing to nonexistent vertex").map_err(err_msg)?;
-                let normal_value = obj.normal.get(normal).ok_or("index pointing to nonexistent normal").map_err(err_msg)?;
-                let tex_value = obj.texture.get(tex).ok_or("index pointing to nonexistent texture UV").map_err(err_msg)?;
+                let vertex_value = obj.data.position.get(vertex).ok_or("index pointing to nonexistent vertex").map_err(err_msg)?;
+                let normal_value = obj.data.normal.get(normal).ok_or("index pointing to nonexistent normal").map_err(err_msg)?;
+                let tex_value = obj.data.texture.get(tex).ok_or("index pointing to nonexistent texture UV").map_err(err_msg)?;
                 let new_index = vertices.len();
-                let vertex_tuple = (vertex_value[0], vertex_value[1], vertex_value[2]);
-                let normal_tuple = (normal_value[0], normal_value[1], normal_value[2]);
-                let tex_tuple = (tex_value[0], tex_value[1]);
-                let vertex_nor_tex = VertexTexNor::new_t(vertex_tuple, normal_tuple, tex_tuple);
+                let vertex_nor_tex = VertexTexNor::new_t(vertex_value, normal_value, tex_value);
                 vertices.push(vertex_nor_tex);
                 e.insert(new_index);
                 Ok(new_index)
@@ -125,12 +118,12 @@ fn load_ver_nor_tex<T: std::io::Read>(input: &mut BufReader<T>) -> Result<(Vec<V
     }
 
 
-    let triangles = &obj.objects.first().ok_or("No objects in obj file").map_err(err_msg)?
+    let triangles = &obj.data.objects.first().ok_or("No objects in obj file").map_err(err_msg)?
         .groups.first().ok_or("No groups in obj file").map_err(err_msg)?
         .polys;
     for triangle in triangles {
-        if triangle.len() != 3 { return Err("Obj file contains non-triangle polygon").map_err(err_msg); }
-        for vertex in triangle {
+        if triangle.0.len() != 3 { return Err("Obj file contains non-triangle polygon").map_err(err_msg); }
+        for vertex in &triangle.0 {
             let vertex_index = vertex.0;
             let texture_index = vertex.1.ok_or("texture UV index is mandatory! Fix you obj file").map_err(err_msg)?;
             let normal_index = vertex.2.ok_or("normal index is mandatory! Fix you obj file").map_err(err_msg)?;
@@ -185,7 +178,7 @@ fn compute_tangents(vertices:Vec<VertexTexNor>, indices:&Vec<i32>) -> Result<Vec
             counts[i] = post_size;
         }
     }
-    fn orthogonalize(normal: &f32_f32_f32, tangent: &glm::TMat<f32, U3, U1>, bitangent: &glm::TMat<f32, U3, U1>) -> f32_f32_f32 {
+    fn orthogonalize(normal: &f32_f32_f32, tangent: &glm::TMat<f32, 3, 1>, bitangent: &glm::TMat<f32, 3, 1>) -> f32_f32_f32 {
         let n = glm::vec3(normal.x(), normal.y(), normal.z());
         let t = tangent;
         let b = bitangent;
@@ -194,7 +187,7 @@ fn compute_tangents(vertices:Vec<VertexTexNor>, indices:&Vec<i32>) -> Result<Vec
         let t = glm::normalize(&(t - n * glm::dot(&n, &t)));
 
         // Calculate handedness
-        let c = glm::cross::<f32, U1>(&n, &t);
+        let c = glm::cross::<f32>(&n, &t);
         let t = if glm::dot(&c, &b) < 0.0f32 {
             t * -1.0f32
         } else {
