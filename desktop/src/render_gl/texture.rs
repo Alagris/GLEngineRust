@@ -3,6 +3,7 @@ use image::{GenericImage, DynamicImage};
 use image::GenericImageView;
 use std::path::Path;
 use failure::err_msg;
+use crate::resources::Resources;
 
 pub trait TextureType {
     const TEXTURE_TYPE: gl::types::GLuint;
@@ -46,6 +47,10 @@ impl<B: TextureType> Tex<B> {
 }
 
 impl Tex<Texture2D> {
+    pub fn from_res(resource_name: &str, res:&Resources, gl: &gl::Gl) -> Result<Self, failure::Error> {
+        println!("Loading texture {}",resource_name);
+        Self::new(&res.path(resource_name),gl)
+    }
     pub fn new(file: &Path, gl: &gl::Gl) -> Result<Self, failure::Error> {
         let mut texture = 0;
         let img = image::open(file).map_err(err_msg)?;

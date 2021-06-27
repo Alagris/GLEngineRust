@@ -2,6 +2,7 @@ use std::ffi;
 use std::fs;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
+use std::fs::File;
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -42,8 +43,12 @@ impl Resources {
         resource_name_to_path(&self.root_path, resource_name)
     }
 
+    pub fn open(&self, resource_name: &str) -> std::io::Result<File> {
+        fs::File::open(self.path(resource_name))
+    }
+
     pub fn load_cstring(&self, resource_name: &str) -> Result<ffi::CString, Error> {
-        let mut file = fs::File::open(self.path(resource_name))?;
+        let mut file = self.open(resource_name)?;
 
         // allocate buffer of the same size as file
         let mut buffer: Vec<u8> = Vec::with_capacity(file.metadata()?.len() as usize + 1);

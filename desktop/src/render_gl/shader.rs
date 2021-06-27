@@ -267,6 +267,7 @@ pub struct Shader {
 
 impl Shader {
     pub fn from_res(gl: &gl::Gl, res: &Resources, name: &str) -> Result<Shader, Error> {
+        println!("Loading shader {}", name);
         const POSSIBLE_EXT: [(&str, gl::types::GLenum); 3] =
             [(".vert", gl::VERTEX_SHADER), (".frag", gl::FRAGMENT_SHADER), (".geom", gl::GEOMETRY_SHADER)];
 
@@ -281,7 +282,7 @@ impl Shader {
             inner: e,
         })?;
 
-        println!("Shader {} loaded", name);
+
         Shader::from_source(gl, &source, shader_kind).map_err(|message| Error::CompileError {
             name: name.into(),
             message,

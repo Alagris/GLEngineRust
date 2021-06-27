@@ -12,6 +12,7 @@ use std::net::Incoming;
 use glm::U3;
 use glm::U1;
 use std::path::Path;
+use crate::resources::Resources;
 
 pub struct Model {
     vertices: Vec<VertexTexNorTan>,
@@ -23,6 +24,12 @@ pub struct Model {
 }
 
 impl Model {
+
+    pub fn from_res(resource_name: &str, res:&Resources, gl: &gl::Gl) -> Result<Model, failure::Error> {
+        println!("Loading model {:?}", resource_name);
+        let input = res.path(resource_name);
+        Self::new(input, gl)
+    }
 
     pub fn new(input: impl AsRef<Path>, gl: &gl::Gl) -> Result<Model, failure::Error> {
         let ver_ind = load_ver_nor_tex(input)?;
@@ -92,7 +99,6 @@ impl Model {
 
 fn load_ver_nor_tex(input: impl AsRef<Path>) -> Result<(Vec<VertexTexNor>, Vec<i32>), failure::Error> {
     let obj = Obj::load(input)?;
-
     let mut vertices: Vec<VertexTexNor> = vec![];
     let mut indices: Vec<i32> = vec![];
     type Cache = HashMap<usize, HashMap<usize, HashMap<usize, usize>>>;

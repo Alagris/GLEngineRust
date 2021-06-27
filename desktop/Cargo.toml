@@ -15,6 +15,7 @@ collada = "0.13.0"
 obj = "0.10.2"
 genmesh = "0.6.2"
 rand = "0.8.3"
+ocl = "0.19.3"
 [features]
 gl_debug = ["gl/debug"]
 [build-dependencies]

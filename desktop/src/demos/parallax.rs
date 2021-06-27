@@ -13,13 +13,13 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
     let normal_mapping_program = render_gl::Program::from_res(&gl, &res, "shaders/normal_mapping")?;
     let debug_shader_program = render_gl::Program::from_res(&gl, &res, "shaders/debug")?;
 
-    let model = Model::new("assets/model/wall.obj", &gl)?;
+    let model = Model::from_res("model/wall.obj", &res,&gl)?;
 
-    let model_susanne = Model::new("assets/model/susanne.obj", &gl)?;
+    let model_susanne = Model::from_res("model/susanne.obj", &res,&gl)?;
 
-    let texture = render_gl::texture::Texture::new(&Path::new("assets/img/bricks2.jpg"), &gl)?;
-    let texture_normal = render_gl::texture::Texture::new(&Path::new("assets/img/bricks2_normal.jpg"), &gl)?;
-    let texture_depth = render_gl::texture::Texture::new(&Path::new("assets/img/bricks2_disp.jpg"), &gl)?;
+    let texture = render_gl::texture::Texture::from_res("img/bricks2.jpg", &res, &gl)?;
+    let texture_normal = render_gl::texture::Texture::from_res("img/bricks2_normal.jpg", &res, &gl)?;
+    let texture_depth = render_gl::texture::Texture::from_res("img/bricks2_disp.jpg", &res, &gl)?;
 
 // set up shared state for window
     let mut viewport = render_gl::Viewport::for_window(900, 700);
