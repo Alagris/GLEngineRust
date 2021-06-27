@@ -2,7 +2,11 @@
 layout (triangles) in;
 layout (line_strip, max_vertices = 18) out;
 uniform mat4 MVP;
+uniform mat4 V;
+uniform mat4 P;
+uniform mat4 M;
 out vec3 color;
+//uniform float normalLength;
 in VS_OUT {
     vec3 normal;
     vec3 tangent;

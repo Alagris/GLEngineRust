@@ -61,24 +61,4 @@ void main()
         MaterialSpecularColor * LightColor * pow(cosAlpha,32) / (distance*distance);
 
 
-//    float ambientStrength = 0.1;
-//    float lightStrnegth = lightColor.w;
-//    vec3 ambient = ambientStrength * vec3(lightColor);
-//
-//    vec3 norm = normalize(IN.Normal);
-//    vec3 lightDir = normalize(lightSource - IN.FragPos);
-//    float diff = abs(dot(norm, lightDir));
-//    vec3 diffuse = diff * vec3(lightColor);
-//
-//    float specularStrength = 0.5;
-//    vec3 viewDir = normalize(-IN.FragPosView);
-//    vec3 reflectDir = reflect(-lightDir, norm);
-//    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-//    vec3 specular = specularStrength * spec * vec3(lightColor);
-//
-//
-//    float lightDistance =  distance(lightSource,IN.FragPos)/ lightColor.w ;
-//    vec4 objectColor = texture( myTextureSampler, IN.UV ).rgba;
-//    vec4 result = vec4(ambient + diffuse / (lightDistance*lightDistance ),1.0) * objectColor ;
-//    Color = result;
 }

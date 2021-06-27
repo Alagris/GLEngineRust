@@ -35,21 +35,12 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
         }
     }
     let debug_mvp_uniform = warn_ok(debug_shader_program.get_uniform_matrix4fv("MVP").map_err(err_msg));
-    let debug_v_uniform = warn_ok(debug_shader_program.get_uniform_matrix4fv("V").map_err(err_msg));
-    let debug_p_uniform = warn_ok(debug_shader_program.get_uniform_matrix4fv("P").map_err(err_msg));
-    let debug_m_uniform = warn_ok(debug_shader_program.get_uniform_matrix4fv("M").map_err(err_msg));
-    let debug_normal_length = warn_ok(debug_shader_program.get_uniform_1f("normalLength").map_err(err_msg));
 
-    let mv3x3_uniform = warn_ok(shader_program.get_uniform_matrix3fv("MV3x3").map_err(err_msg));
     let texture_uniform = warn_ok(shader_program.get_uniform_texture("myTextureSampler").map_err(err_msg));
-    let texture_normal_uniform = warn_ok(shader_program.get_uniform_texture("normalMap").map_err(err_msg));
-    let texture_depth_uniform = warn_ok(shader_program.get_uniform_texture("depthMap").map_err(err_msg));
     let mvp_uniform = warn_ok(shader_program.get_uniform_matrix4fv("MVP").map_err(err_msg));
     let light_source_uniform = warn_ok(shader_program.get_uniform_vec3fv("lightSource").map_err(err_msg));
     let light_color_uniform = warn_ok(shader_program.get_uniform_vec4fv("lightColor").map_err(err_msg));
-//    let view_pos_uniform = shader_program.get_uniform_vec3fv("viewPos").map_err(err_msg)?;
     let m_uniform = warn_ok(shader_program.get_uniform_matrix4fv("M").map_err(err_msg));
-//    let mv_uniform = shader_program.get_uniform_matrix4fv("MV").map_err(err_msg)?;
     let v_uniform = warn_ok(shader_program.get_uniform_matrix4fv("V").map_err(err_msg));
 
 
@@ -127,25 +118,16 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
         let mv = &v * m;
         let mvp = projection_matrix * &mv;
         mvp_uniform.map(|u| shader_program.set_uniform_matrix4fv(u, mvp.as_slice()));
-//        shader_program.set_uniform_matrix4fv(mv_uniform, mv.as_slice());
         v_uniform.map(|u| shader_program.set_uniform_matrix4fv(u, v.as_slice()));
         m_uniform.map(|u| shader_program.set_uniform_matrix4fv(u, m.as_slice()));
-//        shader_program.set_uniform_vec3fv(view_pos_uniform, location3.as_slice());
         light_source_uniform.map(|u| shader_program.set_uniform_vec3fv(u, light_location.as_slice()));
         light_color_uniform.map(|u| shader_program.set_uniform_vec4fv(u, &[1f32, 1f32, 1f32, light_strength]));
         texture_uniform.map(|u| shader_program.set_uniform_texture(u, &texture, 0));
-        texture_normal_uniform.map(|u| shader_program.set_uniform_texture(u, &texture_normal, 1));
-        texture_depth_uniform.map(|u| shader_program.set_uniform_texture(u, &texture_depth, 2));
-        mv3x3_uniform.map(|u| shader_program.set_uniform_matrix3fv(u, glm::mat4_to_mat3(&mv).as_slice()));
         model_susanne.bind();
         model_susanne.draw_triangles();
 
         debug_shader_program.set_used();
         debug_mvp_uniform.map(|u| debug_shader_program.set_uniform_matrix4fv(u, mvp.as_slice()));
-        debug_m_uniform.map(|u| debug_shader_program.set_uniform_matrix4fv(u, model_matrix.as_slice()));
-        debug_v_uniform.map(|u| debug_shader_program.set_uniform_matrix4fv(u, v.as_slice()));
-        debug_p_uniform.map(|u| debug_shader_program.set_uniform_matrix4fv(u, projection_matrix.as_slice()));
-        debug_normal_length.map(|u| debug_shader_program.set_uniform_1f(u, normal_length));
         model_susanne.bind();
         model_susanne.draw_triangles();
 
@@ -155,10 +137,8 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
         let mvp = projection_matrix * &mv;
         normal_mapping_program.set_used();
         mvp_parallax_uniform.map(|u| normal_mapping_program.set_uniform_matrix4fv(u, mvp.as_slice()));
-//        shader_program.set_uniform_matrix4fv(mv_uniform, mv.as_slice());
         v_parallax_uniform.map(|u| normal_mapping_program.set_uniform_matrix4fv(u, v.as_slice()));
         m_parallax_uniform.map(|u| normal_mapping_program.set_uniform_matrix4fv(u, m.as_slice()));
-//        shader_program.set_uniform_vec3fv(view_pos_uniform, location3.as_slice());
         light_source_parallax_uniform.map(|u| normal_mapping_program.set_uniform_vec3fv(u, light_location.as_slice()));
         light_color_parallax_uniform.map(|u| normal_mapping_program.set_uniform_vec4fv(u, &[1f32, 1f32, 1f32, light_strength]));
         texture_parallax_uniform.map(|u| normal_mapping_program.set_uniform_texture(u, &texture, 0));

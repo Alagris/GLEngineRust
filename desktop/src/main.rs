@@ -1,3 +1,4 @@
+#![feature(array_map)]
 extern crate sdl2;
 extern crate gl;
 extern crate image;
@@ -16,6 +17,7 @@ mod render_gl;
 mod resources;
 mod scene;
 mod demos;
+mod blocks;
 
 fn main() {
     if let Err(e) = scene::run() {

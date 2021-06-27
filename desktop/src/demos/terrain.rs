@@ -23,20 +23,20 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
 
     // let model_ball = Model::new("assets/model/ball.obj", &gl)?;
 
-    let model_cube = Model::new("assets/model/cube.obj", &gl)?;
+    let model_cube = Model::from_res("model/cube.obj", &res,&gl)?;
 
-    let texture = render_gl::texture::Texture::new(&Path::new("assets/img/bricks2.jpg"), &gl)?;
-    let texture_normal = render_gl::texture::Texture::new(&Path::new("assets/img/bricks2_normal.jpg"), &gl)?;
-    let texture_depth = render_gl::texture::Texture::new(&Path::new("assets/img/bricks2_disp.jpg"), &gl)?;
+    let texture = render_gl::texture::Texture::from_res("img/bricks2.jpg",&res, &gl)?;
+    let texture_normal = render_gl::texture::Texture::from_res("img/bricks2_normal.jpg",&res, &gl)?;
+    let texture_depth = render_gl::texture::Texture::from_res("img/bricks2_disp.jpg",&res, &gl)?;
 
-    let sky_box_texture = Cubemap:: new([
-                                            &Path::new("assets/img/right.jpg"),
-                                            &Path::new("assets/img/left.jpg"),
-                                            &Path::new("assets/img/top.jpg"),
-                                            &Path::new("assets/img/bottom.jpg"),
-                                            &Path::new("assets/img/front.jpg"),
-                                            &Path::new("assets/img/back.jpg")
-                                        ], &gl)?;
+    let sky_box_texture = Cubemap:: from_res([
+                                            "img/right.jpg",
+                                            "img/left.jpg",
+                                            "img/top.jpg",
+                                            "img/bottom.jpg",
+                                            "img/front.jpg",
+                                            "img/back.jpg"
+                                        ], &res, &gl)?;
 // set up shared state for window
     let mut viewport = render_gl::Viewport::for_window(900, 700);
     viewport.set_used(&gl);

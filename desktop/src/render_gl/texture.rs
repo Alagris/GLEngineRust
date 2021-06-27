@@ -83,7 +83,12 @@ impl Tex<Texture2D> {
 }
 
 impl Tex<TextureCube> {
-    pub fn new(files: [&Path; 6], gl: &gl::Gl) -> Result<Self, failure::Error> {
+    pub fn from_res(files: [&str; 6], res:&Resources, gl: &gl::Gl) -> Result<Self, failure::Error> {
+        println!("Loading cubemap from: {:?}",files);
+        let files = files.map(|f|res.path(f));
+        Self::new(files, gl)
+    }
+    pub fn new(files: [impl AsRef<Path>; 6], gl: &gl::Gl) -> Result<Self, failure::Error> {
         let mut texture = 0;
         let data: Result<Vec<DynamicImage>, _> = files.iter().map(|file| image::open(file).map_err(err_msg)).collect();
         let data = data?;

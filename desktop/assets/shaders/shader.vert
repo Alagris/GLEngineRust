@@ -44,9 +44,4 @@ void main()
     UV = vertexUV;
 
 
-//    gl_Position = MVP * vec4(Position, 1.0);
-//    OUT.FragPosView = vec3(MV * vec4(Position, 1.0));
-//    OUT.FragPos = vec3(M * vec4(Position, 1.0));
-//    OUT.Normal = Normal;
-//    OUT.UV = TextureUV;
 }
