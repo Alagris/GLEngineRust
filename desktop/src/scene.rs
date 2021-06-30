@@ -3,9 +3,6 @@ use std::path::Path;
 use std::ffi::CStr;
 use failure::err_msg;
 use crate::render_gl;
-use crate::render_gl::terrain::{Graph, iterate};
-use crate::render_gl::model::Model;
-use crate::render_gl::texture::Cubemap;
 
 pub const GL_VER_MINOR:u8 = 1;
 pub const GL_VER_MAJOR:u8 = 4;

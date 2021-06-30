@@ -1,6 +1,10 @@
 use gl;
 
 
+pub trait VertexAttribPointers{
+    fn vertex_attrib_pointers(gl: &::gl::Gl);
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
@@ -89,27 +93,106 @@ impl From<&[f32;2]> for f32_f32 {
     }
 }
 
+
+#[allow(non_camel_case_types)]
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+pub struct u8_u8 {
+    pub d0: u8,
+    pub d1: u8,
+}
+
+impl u8_u8 {
+    pub fn new(d0: u8, d1: u8) -> u8_u8 {
+        u8_u8 {
+            d0,
+            d1,
+        }
+    }
+
+    pub unsafe fn vertex_attrib_pointer(gl: &gl::Gl, stride: usize, location: usize, offset: usize) {
+        gl.EnableVertexAttribArray(location as gl::types::GLuint);
+        gl.VertexAttribPointer(
+            location as gl::types::GLuint,
+            2, // the number of components per generic vertex attribute
+            gl::UNSIGNED_BYTE, // data type
+            gl::FALSE, // normalized (int-to-float conversion)
+            stride as gl::types::GLint,
+            offset as *const gl::types::GLvoid,
+        );
+    }
+}
+
+impl From<(u8, u8)> for u8_u8 {
+    fn from(other: (u8, u8)) -> Self {
+        u8_u8::new(other.0, other.1)
+    }
+}
+impl From<&[u8;2]> for u8_u8 {
+    fn from(other: &[u8;2]) -> Self {
+        u8_u8::new(other[0], other[1])
+    }
+}
+
+
+#[allow(non_camel_case_types)]
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+pub struct u8_u8_u8 {
+    pub d0: u8,
+    pub d1: u8,
+    pub d2: u8,
+}
+
+impl u8_u8_u8 {
+    pub fn new(d0: u8, d1: u8, d2: u8) -> u8_u8_u8 {
+        u8_u8_u8 {
+            d0,
+            d1,
+            d2
+        }
+    }
+
+    pub unsafe fn vertex_attrib_pointer(gl: &gl::Gl, stride: usize, location: usize, offset: usize) {
+        gl.EnableVertexAttribArray(location as gl::types::GLuint);
+        gl.VertexAttribPointer(
+            location as gl::types::GLuint,
+            3, // the number of components per generic vertex attribute
+            gl::UNSIGNED_BYTE, // data type
+            gl::FALSE, // normalized (int-to-float conversion)
+            stride as gl::types::GLint,
+            offset as *const gl::types::GLvoid,
+        );
+    }
+}
+
+impl From<(u8, u8, u8)> for u8_u8_u8 {
+    fn from(other: (u8, u8, u8)) -> Self {
+        u8_u8_u8::new(other.0, other.1, other.2)
+    }
+}
+impl From<&[u8;3]> for u8_u8_u8 {
+    fn from(other: &[u8;3]) -> Self {
+        u8_u8_u8::new(other[0], other[1], other[2])
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 #[derive(VertexAttribPointers)]
 pub struct Vertex {
     #[location = 0]
-    pos: f32_f32_f32,
-    //position
+    pos: f32_f32_f32, //position
     #[location = 1]
     clr: f32_f32_f32, //color
 }
 
 impl Vertex {
-    pub fn new(pos: f32_f32_f32, clr: f32_f32_f32) -> Self {
+    pub fn new(pos: impl Into<f32_f32_f32>, clr: impl Into<f32_f32_f32>) -> Self {
         Self {
-            pos,
-            clr,
+            pos:pos.into(),
+            clr:clr.into()
         }
-    }
-
-    pub fn new_t(pos: (f32, f32, f32), clr: (f32, f32, f32)) -> Self {
-        Self::new(pos.into(), clr.into())
     }
 }
 
@@ -127,16 +210,13 @@ pub struct VertexTexCol {
 }
 
 impl VertexTexCol {
-    pub fn new(pos: f32_f32_f32, clr: f32_f32_f32, tex: f32_f32) -> Self {
-        Self {
-            pos,
-            clr,
-            tex,
-        }
-    }
 
-    pub fn new_t(pos: (f32, f32, f32), clr: (f32, f32, f32), tex: (f32, f32)) -> Self {
-        Self::new(pos.into(), clr.into(), tex.into())
+    pub fn new(pos: impl Into<f32_f32_f32>, clr: impl Into<f32_f32_f32>, tex: impl Into<f32_f32>) -> Self {
+        Self {
+            pos:pos.into(),
+            tex:tex.into(),
+            clr:clr.into()
+        }
     }
 }
 
@@ -153,15 +233,11 @@ pub struct VertexTex {
 }
 
 impl VertexTex {
-    pub fn new(pos: f32_f32_f32, tex: f32_f32) -> Self {
+    pub fn new(pos: impl Into<f32_f32_f32>, tex: impl Into<f32_f32>) -> Self {
         Self {
-            pos,
-            tex,
+            pos:pos.into(),
+            tex:tex.into(),
         }
-    }
-
-    pub fn new_t(pos: (f32, f32, f32), tex: (f32, f32)) -> Self {
-        Self::new(pos.into(), tex.into())
     }
 }
 
@@ -181,16 +257,12 @@ pub struct VertexTexNor {
 }
 
 impl VertexTexNor {
-    pub fn new(pos: f32_f32_f32, nor: f32_f32_f32, tex: f32_f32) -> Self {
+    pub fn new(pos: impl Into<f32_f32_f32>, nor: impl Into<f32_f32_f32>, tex: impl Into<f32_f32>) -> Self {
         Self {
-            pos,
-            tex,
-            nor,
+            pos:pos.into(),
+            tex:tex.into(),
+            nor:nor.into()
         }
-    }
-
-    pub fn new_t<P:Into<f32_f32_f32>,N:Into<f32_f32_f32>, T:Into<f32_f32>>(pos: P, nor: N, tex: T) -> Self {
-        Self::new(pos.into(), nor.into(), tex.into())
     }
 
     pub fn pos(&self) -> &f32_f32_f32 {
@@ -231,13 +303,17 @@ pub struct VertexTexNorTan {
 }
 
 impl VertexTexNorTan {
-    pub fn new(pos: f32_f32_f32, nor: f32_f32_f32, tex: f32_f32, tan: f32_f32_f32, bitan: f32_f32_f32) -> Self {
+    pub fn new(pos: impl Into<f32_f32_f32>,
+               nor: impl Into<f32_f32_f32>,
+               tex: impl Into<f32_f32>,
+               tan: impl Into<f32_f32_f32>,
+               bitan: impl Into<f32_f32_f32>) -> Self {
         Self {
-            pos,
-            tex,
-            nor,
-            tan,
-            bitan,
+            pos:pos.into(),
+            tex:tex.into(),
+            nor:nor.into(),
+            tan:tan.into(),
+            bitan:bitan.into()
         }
     }
 
@@ -245,8 +321,4 @@ impl VertexTexNorTan {
         Self::new(ver_tex_nor.pos, ver_tex_nor.nor, ver_tex_nor.tex, tan, bitan)
     }
 
-    pub fn new_t(pos: (f32, f32, f32), nor: (f32, f32, f32), tex: (f32, f32), tan: (f32, f32, f32), bitan: (f32, f32, f32)) -> Self {
-        Self::new(pos.into(), nor.into(), tex.into(), tan.into(), bitan.into())
-    }
 }
-

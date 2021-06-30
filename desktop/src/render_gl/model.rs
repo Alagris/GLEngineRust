@@ -1,88 +1,83 @@
 use std::fs::File;
 use std::io::BufReader;
-use crate::render_gl::data::{Vertex, VertexTex, VertexTexCol, VertexTexNor, f32_f32_f32, VertexTexNorTan};
+use crate::render_gl::data::{Vertex, VertexTex, VertexTexCol, VertexTexNor, f32_f32_f32, VertexTexNorTan, VertexAttribPointers};
 use crate::render_gl::buffer::{ArrayBuffer, ElementArrayBuffer, VertexArray};
 use obj::{Obj, IndexTuple, SimplePolygon};
 use core::ptr;
 use gl;
 use std::collections::HashMap;
-use failure::err_msg;
+use failure::{err_msg, Error};
 use std::collections::hash_map::Entry;
 use std::net::Incoming;
 use glm::U3;
 use glm::U1;
 use std::path::Path;
 use crate::resources::Resources;
+use std::num::NonZeroUsize;
+use std::hash::Hash;
+use crate::render_gl::util::type_name;
+use std::fmt::Debug;
 
-pub struct Model {
-    vertices: Vec<VertexTexNorTan>,
-    indices: Vec<i32>,
-    vbo: ArrayBuffer,
-    ebo: ElementArrayBuffer,
+pub struct Model<T:VertexAttribPointers> {
+    vbo: ArrayBuffer<T>,
+    ebo: ElementArrayBuffer<i32>,
     vao: VertexArray,
     gl: gl::Gl,
 }
 
-impl Model {
-
-    pub fn from_res(resource_name: &str, res:&Resources, gl: &gl::Gl) -> Result<Model, failure::Error> {
-        println!("Loading model {:?}", resource_name);
-        let input = res.path(resource_name);
-        Self::new(input, gl)
+impl <T:VertexAttribPointers> Model<T> {
+    pub fn vbo(&self)-> &ArrayBuffer<T>{
+        &self.vbo
     }
-
-    pub fn new(input: impl AsRef<Path>, gl: &gl::Gl) -> Result<Model, failure::Error> {
-        let ver_ind = load_ver_nor_tex(input)?;
-        Self::new_from_ver_nor_tex(ver_ind, gl)
+    pub fn gl(&self)-> &gl::Gl{
+        &self.gl
     }
-
-    pub fn new_from_ver_nor_tex((ver,indices): (Vec<VertexTexNor>, Vec<i32>), gl: &gl::Gl) -> Result<Model, failure::Error> {
-        let vertices= compute_tangents(ver,&indices)?;
+    pub fn ebo(&self)-> &ElementArrayBuffer<i32>{
+        &self.ebo
+    }
+    pub fn vao(&self)-> &VertexArray{
+        &self.vao
+    }
+    pub fn new(vertices:&[T],indices:&[i32], gl: &gl::Gl) -> Result<Self, failure::Error> {
         let vbo = ArrayBuffer::new(&gl);
         let ebo = ElementArrayBuffer::new(&gl);
         let vao = VertexArray::new(&gl);
 
         vbo.bind();
-        vbo.static_draw_data(&vertices);
+        vbo.static_draw_data(vertices);
         vbo.unbind();
         ebo.bind();
-        ebo.static_draw_data(&indices);
+        ebo.static_draw_data(indices);
         ebo.unbind();
 
         vao.bind();
         vbo.bind();
         ebo.bind();
-        VertexTexNorTan::vertex_attrib_pointers(&gl);
+        T::vertex_attrib_pointers(&gl);
         ebo.unbind();
         vbo.unbind();
         vao.unbind();
-
-        Ok(Model { vertices, indices, vbo, ebo, vao, gl: gl.clone() })
-    }
-
-    pub fn update_vbo(&mut self, vbo: Vec<VertexTexNor>) -> Result<(), failure::Error> {
-        if self.vertices.len() == vbo.len() {
-            let vertices = compute_tangents(vbo, &self.indices)?;
-            self.vertices = vertices;
-            self.vbo.bind();
-            unsafe {
-                self.gl.BufferSubData(ArrayBuffer::target(), 0, (self.vertices.len() * ::std::mem::size_of::<VertexTexNorTan>()) as gl::types::GLsizeiptr, self.vertices.as_ptr() as *const gl::types::GLvoid);
-            }
-            self.vbo.unbind();
-            Ok(())
-        } else {
-            Err("Incorrect size").map_err(err_msg)
-        }
+        let me = Self { vbo, ebo, vao, gl: gl.clone() };
+        assert_eq!(me.len_indices(),indices.len());
+        assert_eq!(me.len_vertices(),vertices.len());
+        Ok(me)
     }
 
     pub fn bind(&self) {
         self.vao.bind();
         self.ebo.bind();
     }
-
+    pub fn len_vertices(&self)->usize{
+        self.vbo.len()
+    }
+    pub fn len_indices(&self)->usize{
+        self.ebo.len()
+    }
     fn draw(&self, primitive: gl::types::GLenum) {
+        let indices = self.len_indices() as i32;
         unsafe {
-            self.gl.DrawElements(primitive, self.indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
+            self.bind();
+            self.gl.DrawElements(primitive, indices, gl::UNSIGNED_INT, ptr::null());
         }
     }
     pub fn draw_triangles(&self) {
@@ -95,34 +90,74 @@ impl Model {
     pub fn draw_line_strip(&self) {
         self.draw(gl::LINE_STRIP);
     }
+    pub fn update_vbo(&mut self, vbo: &[T]) -> Result<(), failure::Error> {
+        self.vbo.update(vbo)
+    }
 }
 
-fn load_ver_nor_tex(input: impl AsRef<Path>) -> Result<(Vec<VertexTexNor>, Vec<i32>), failure::Error> {
-    let obj = Obj::load(input)?;
-    let mut vertices: Vec<VertexTexNor> = vec![];
-    let mut indices: Vec<i32> = vec![];
-    type Cache = HashMap<usize, HashMap<usize, HashMap<usize, usize>>>;
-    let mut cache: Cache = HashMap::new();
 
-    fn insert_to_cache(cache: &mut Cache, vertices: &mut Vec<VertexTexNor>, obj: &Obj, vertex: usize, normal: usize, tex: usize) -> Result<usize, failure::Error> {
-        let vertex_entry = cache.entry(vertex).or_insert(HashMap::new());
-        let normal_entry = vertex_entry.entry(normal).or_insert(HashMap::new());
-        let tex_entry = normal_entry.entry(tex);
-        match tex_entry {
-            Entry::Occupied(e) => Ok(*e.get()),
-            Entry::Vacant(e) => {
-                let vertex_value = obj.data.position.get(vertex).ok_or("index pointing to nonexistent vertex").map_err(err_msg)?;
-                let normal_value = obj.data.normal.get(normal).ok_or("index pointing to nonexistent normal").map_err(err_msg)?;
-                let tex_value = obj.data.texture.get(tex).ok_or("index pointing to nonexistent texture UV").map_err(err_msg)?;
-                let new_index = vertices.len();
-                let vertex_nor_tex = VertexTexNor::new_t(vertex_value, normal_value, tex_value);
-                vertices.push(vertex_nor_tex);
-                e.insert(new_index);
-                Ok(new_index)
-            }
-        }
+pub trait LoadableFromObj:Sized{
+    fn load(input: impl AsRef<Path>)->Result<(Vec<Self>, Vec<i32>), failure::Error>;
+}
+impl LoadableFromObj for VertexTex{
+    fn load(input: impl AsRef<Path>) -> Result<(Vec<Self>, Vec<i32>), Error> {
+        load(input, |vertex|{
+            let vertex_index = vertex.0;
+            let texture_index = vertex.1.ok_or("texture UV index is mandatory! Fix you obj file").map_err(err_msg)?;
+            Ok((vertex_index, texture_index))
+        }, |&(ver,tex), obj|{
+            let ver_value = obj.data.position.get(ver).ok_or("index pointing to nonexistent vertex").map_err(err_msg)?;
+            let tex_value = obj.data.texture.get(tex).ok_or("index pointing to nonexistent texture UV").map_err(err_msg)?;
+            Ok(VertexTex::new(ver_value, tex_value))
+        })
+    }
+}
+impl LoadableFromObj for VertexTexNor{
+    fn load(input: impl AsRef<Path>) -> Result<(Vec<Self>, Vec<i32>), Error> {
+        load(input, |vertex|{
+            let vertex_index = vertex.0;
+            let texture_index = vertex.1.ok_or("texture UV index is mandatory! Fix you obj file").map_err(err_msg)?;
+            let normal_index = vertex.2.ok_or("normal index is mandatory! Fix you obj file").map_err(err_msg)?;
+            Ok((vertex_index, texture_index, normal_index))
+        }, |&(ver,tex,nor), obj|{
+
+            let ver_value = obj.data.position.get(ver).ok_or("index pointing to nonexistent vertex").map_err(err_msg)?;
+            let nor_value = obj.data.normal.get(nor).ok_or("index pointing to nonexistent normal").map_err(err_msg)?;
+            let tex_value = obj.data.texture.get(tex).ok_or("index pointing to nonexistent texture UV").map_err(err_msg)?;
+            Ok(VertexTexNor::new(ver_value, nor_value, tex_value))
+        })
+    }
+}
+impl LoadableFromObj for VertexTexNorTan{
+    fn load(input: impl AsRef<Path>) -> Result<(Vec<Self>, Vec<i32>), Error> {
+        VertexTexNor::load(input).and_then(|(ver_tex_nor,indices)|compute_tangents(&ver_tex_nor,&indices).map(|ver_tex_nor_tan|(ver_tex_nor_tan,indices)))
+    }
+}
+
+impl <T:LoadableFromObj+VertexAttribPointers> Model<T>{
+    pub fn from_res(resource_name: &str, res:&Resources, gl: &gl::Gl) -> Result<Self, failure::Error> {
+        println!("Loading {} model {:?}",type_name::<T>(), resource_name);
+        let input = res.path(resource_name);
+        Self::from_obj(input, gl)
     }
 
+    pub fn from_obj(input: impl AsRef<Path>, gl: &gl::Gl) -> Result<Self, failure::Error> {
+        let (ver,ind) = T::load(input)?;
+        Self::new(ver.as_slice(),ind.as_slice(), gl)
+    }
+}
+impl Model<VertexTexNorTan>{
+    pub fn new_from_tex_nor(ver: &[VertexTexNor], indices: Vec<i32>, gl: &gl::Gl) -> Result<Self, failure::Error> {
+        let vertices = compute_tangents(ver, indices.as_slice())?;
+        Self::new(vertices.as_slice(), indices.as_slice(),gl)
+    }
+}
+pub fn load<T:Debug, K:Eq+Hash>(input: impl AsRef<Path>, f:fn(&IndexTuple)->Result<K,failure::Error>, k:fn(&K, &Obj)->Result<T,failure::Error>) -> Result<(Vec<T>, Vec<i32>), failure::Error>{
+    let obj = Obj::load(input)?;
+    let mut vertices: Vec<T> = vec![];
+    let mut indices: Vec<i32> = vec![];
+    type Cache<K> = HashMap<K, usize>;
+    let mut cache: Cache<K> = HashMap::new();
 
     let triangles = &obj.data.objects.first().ok_or("No objects in obj file").map_err(err_msg)?
         .groups.first().ok_or("No groups in obj file").map_err(err_msg)?
@@ -130,17 +165,25 @@ fn load_ver_nor_tex(input: impl AsRef<Path>) -> Result<(Vec<VertexTexNor>, Vec<i
     for triangle in triangles {
         if triangle.0.len() != 3 { return Err("Obj file contains non-triangle polygon").map_err(err_msg); }
         for vertex in &triangle.0 {
-            let vertex_index = vertex.0;
-            let texture_index = vertex.1.ok_or("texture UV index is mandatory! Fix you obj file").map_err(err_msg)?;
-            let normal_index = vertex.2.ok_or("normal index is mandatory! Fix you obj file").map_err(err_msg)?;
-            let index = insert_to_cache(&mut cache, &mut vertices, &obj, vertex_index, normal_index, texture_index)?;
-            indices.push(index as i32);
+            let key = f(vertex)?;
+            let idx = match cache.entry(key) {
+                Entry::Occupied(e) => e.get().clone(),
+                Entry::Vacant(e) => {
+                    let new_index = vertices.len();
+                    let ver_tex = k(e.key(), &obj)?;
+                    vertices.push(ver_tex);
+                    e.insert(new_index);
+                    new_index
+                }
+            };
+            indices.push(idx as i32);
         }
     }
     Ok((vertices, indices))
 }
 
-fn compute_tangents(vertices:Vec<VertexTexNor>, indices:&Vec<i32>) -> Result<Vec<VertexTexNorTan>, failure::Error> {
+
+pub fn compute_tangents(vertices:&[VertexTexNor], indices:&[i32]) -> Result<Vec<VertexTexNorTan>, failure::Error> {
     let mut tangents = vec![glm::vec3(0f32, 0f32, 0f32); vertices.len()];
     let mut bitangents = vec![glm::vec3(0f32, 0f32, 0f32); vertices.len()];
     let mut counts = vec![0; vertices.len()];

@@ -1,6 +1,4 @@
 use crate::render_gl;
-use crate::render_gl::terrain::{Graph, iterate};
-use crate::render_gl::texture::Cubemap;
 use std::path::Path;
 use failure::err_msg;
 use crate::render_gl::model::Model;
@@ -124,10 +122,12 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
         light_source_uniform.map(|u| shader_program.set_uniform_vec3fv(u, light_location.as_slice()));
         light_color_uniform.map(|u| shader_program.set_uniform_vec4fv(u, &[1f32, 1f32, 1f32, light_strength]));
         texture_uniform.map(|u| shader_program.set_uniform_texture(u, &texture, 0));
+        model_susanne.bind();
         model_susanne.draw_triangles();
 
         debug_shader_program.set_used();
         debug_mvp_uniform.map(|u| debug_shader_program.set_uniform_matrix4fv(u, mvp.as_slice()));
+        model_susanne.bind();
         model_susanne.draw_triangles();
 
 
@@ -144,6 +144,7 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
         texture_normal_parallax_uniform.map(|u| normal_mapping_program.set_uniform_texture(u, &texture_normal, 1));
         texture_depth_parallax_uniform.map(|u| normal_mapping_program.set_uniform_texture(u, &texture_depth, 2));
         mv3x3_parallax_uniform.map(|u| normal_mapping_program.set_uniform_matrix3fv(u, glm::mat4_to_mat3(&mv).as_slice()));
+        model.bind();
         model.draw_triangles();
 
 

@@ -146,7 +146,7 @@ impl Graph {
             let y = vertex.y;
             let h_ratio = y / self.h;
             let w_ratio = x / self.w;
-            vertices.push(VertexTexNor::new_t((x, vertex.h, y), (0., 1., 0.), (w_ratio, h_ratio)));
+            vertices.push(VertexTexNor::new((x, vertex.h, y), (0., 1., 0.), (w_ratio, h_ratio)));
         }
         vertices
     }

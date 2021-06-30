@@ -3,10 +3,12 @@ use crate::render_gl::terrain::{Graph, iterate};
 use crate::render_gl::texture::Cubemap;
 use std::path::Path;
 use failure::err_msg;
-use crate::render_gl::model::Model;
 use crate::resources::Resources;
 use sdl2::{Sdl, TimerSubsystem};
 use sdl2::video::Window;
+use crate::render_gl::model_data::ModelData;
+use crate::render_gl::model::Model;
+use crate::render_gl::data::{VertexTexNorTan, VertexTexNor};
 
 pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) -> Result<(), failure::Error> {
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/procedural")?;
@@ -19,11 +21,11 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
     let mut g = Graph::regular(graph_w, graph_h, 1f32);
     // let model = Model::new("assets/model/wall.obj", &gl)?;
 
-    let mut model_susanne = Model::new_from_ver_nor_tex((g.to_ver_nor_tex(), g.to_indices()), &gl)?; //Model::from_file("assets/model/susanne.obj", &gl)?;
+    let mut model_susanne = ModelData::new_from_tex_nor(g.to_ver_nor_tex().as_slice(), g.to_indices(), &gl)?; //Model::from_file("assets/model/susanne.obj", &gl)?;
 
     // let model_ball = Model::new("assets/model/ball.obj", &gl)?;
 
-    let model_cube = Model::from_res("model/cube.obj", &res,&gl)?;
+    let model_cube = Model::<VertexTexNorTan>::from_res("model/cube.obj", &res, &gl)?;
 
     let texture = render_gl::texture::Texture::from_res("img/bricks2.jpg",&res, &gl)?;
     let texture_normal = render_gl::texture::Texture::from_res("img/bricks2_normal.jpg",&res, &gl)?;
@@ -156,7 +158,7 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
             // &|x, y| ((x -5.)*(x-5.)+ (y-10.)*(y-10.)).sqrt()
             // &|x, y| 1./((x -5.)*(x-5.)+ (y-10.)*(y-10.)).sqrt() + 1./((x -10.)*(x-10.)+ (y-1.)*(y-1.)).sqrt() +  1./((x -20.)*(x-20.)+ (y-20.)*(y-20.)).sqrt()
             g = iterate(g, graph_w, graph_h,  &|x, y| 1./((x -5.)*(x-5.)+ (y-10.)*(y-10.)).sqrt() + 1./((x -10.)*(x-10.)+ (y-1.)*(y-1.)).sqrt() +  1./((x -20.)*(x-20.)+ (y-20.)*(y-20.)).sqrt(), 1f32, 1f32);
-            model_susanne.update_vbo(g.to_ver_nor_tex());
+            model_susanne.update_from_tex_nor(g.to_ver_nor_tex().as_slice());
         }
         if input.is_2() {
             movement_speed += 0.00001f32;

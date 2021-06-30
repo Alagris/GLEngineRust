@@ -13,6 +13,7 @@ use syn::punctuated::Punctuated;
 use syn::token::Token;
 use syn::{Result, DeriveInput, Fields, Meta, MetaNameValue};
 
+
 #[proc_macro_derive(VertexAttribPointers, attributes(location))]
 pub fn vertex_attrib_pointers_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast:DeriveInput = parse_macro_input!(input as DeriveInput);
@@ -77,13 +78,12 @@ fn generate_impl(ast: &syn::DeriveInput) -> proc_macro2::TokenStream {
     }
 
     quote!{
-        impl #ident #generics #where_clause {
+        impl VertexAttribPointers for #ident #generics #where_clause {
             #[allow(unused_variables)]
-            pub fn vertex_attrib_pointers(gl: &::gl::Gl) {
+            fn vertex_attrib_pointers(gl: &::gl::Gl){
+                let offset:usize = 0;
                 let stride = ::std::mem::size_of::<Self>(); // byte offset between consecutive attributes
-                let offset = 0;
                 #(#fields_vertex_attrib_pointer)*
-
             }
         }
     }
