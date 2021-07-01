@@ -1,8 +1,8 @@
 use std::ffi;
 use std::fs;
+use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
-use std::fs::File;
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -62,7 +62,7 @@ impl Resources {
         Ok(unsafe { ffi::CString::from_vec_unchecked(buffer) })
     }
 
-    pub fn has_file(&self,resource_name: &str) -> bool{
+    pub fn has_file(&self, resource_name: &str) -> bool {
         self.path(resource_name).is_file()
     }
 }

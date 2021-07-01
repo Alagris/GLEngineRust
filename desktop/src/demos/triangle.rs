@@ -1,20 +1,18 @@
-use crate::resources::Resources;
 use crate::render_gl::Program;
-use sdl2::Sdl;
+use crate::resources::Resources;
 use sdl2::video::Window;
+use sdl2::{Sdl, TimerSubsystem};
 
-pub fn run(gl:gl::Gl, res:Resources, sdl:Sdl, window:Window) -> Result<(), failure::Error> {
-    let shader_program = Program::from_res(
-        &gl, &res, "shaders/triangle"
-    ).unwrap();
+pub fn run(gl: gl::Gl, res: Resources, sdl: Sdl, window: Window, timer:TimerSubsystem) -> Result<(), failure::Error> {
+    let shader_program = Program::from_res(&gl, &res, "shaders/triangle").unwrap();
 
     shader_program.set_used();
 
     let vertices: Vec<f32> = vec![
         // positions      // colors
-        0.5, -0.5, 0.0,   1.0, 0.0, 0.0,   // bottom right
-        -0.5, -0.5, 0.0,  0.0, 1.0, 0.0,   // bottom left
-        0.0,  0.5, 0.0,   0.0, 0.0, 1.0    // top
+        0.5, -0.5, 0.0, 1.0, 0.0, 0.0, // bottom right
+        -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // bottom left
+        0.0, 0.5, 0.0, 0.0, 0.0, 1.0, // top
     ];
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
@@ -23,10 +21,10 @@ pub fn run(gl:gl::Gl, res:Resources, sdl:Sdl, window:Window) -> Result<(), failu
     unsafe {
         gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl.BufferData(
-            gl::ARRAY_BUFFER, // target
+            gl::ARRAY_BUFFER,                                                       // target
             (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr, // size of data in bytes
             vertices.as_ptr() as *const gl::types::GLvoid, // pointer to data
-            gl::STATIC_DRAW, // usage
+            gl::STATIC_DRAW,                               // usage
         );
         gl.BindBuffer(gl::ARRAY_BUFFER, 0); // unbind the buffer
     }
@@ -41,22 +39,22 @@ pub fn run(gl:gl::Gl, res:Resources, sdl:Sdl, window:Window) -> Result<(), failu
 
         gl.EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
         gl.VertexAttribPointer(
-            0, // index of the generic vertex attribute ("layout (location = 0)")
-            3, // the number of components per generic vertex attribute
+            0,         // index of the generic vertex attribute ("layout (location = 0)")
+            3,         // the number of components per generic vertex attribute
             gl::FLOAT, // data type
             gl::FALSE, // normalized (int-to-float conversion)
             (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            std::ptr::null() // offset of the first component
+            std::ptr::null(),                                     // offset of the first component
         );
 
         gl.EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
         gl.VertexAttribPointer(
-            1, // index of the generic vertex attribute ("layout (location = 0)")
-            3, // the number of components per generic vertex attribute
+            1,         // index of the generic vertex attribute ("layout (location = 0)")
+            3,         // the number of components per generic vertex attribute
             gl::FLOAT, // data type
             gl::FALSE, // normalized (int-to-float conversion)
             (6 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
+            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid, // offset of the first component
         );
 
         gl.BindBuffer(gl::ARRAY_BUFFER, 0);
@@ -72,8 +70,8 @@ pub fn run(gl:gl::Gl, res:Resources, sdl:Sdl, window:Window) -> Result<(), failu
             gl.BindVertexArray(vao);
             gl.DrawArrays(
                 gl::TRIANGLES, // mode
-                0, // starting index in the enabled arrays
-                3 // number of indices to be rendered
+                0,             // starting index in the enabled arrays
+                3,             // number of indices to be rendered
             );
         }
         for event in event_pump.poll_iter() {

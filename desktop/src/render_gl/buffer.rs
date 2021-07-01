@@ -1,20 +1,25 @@
-use gl;
-use failure::err_msg;
 use crate::render_gl::gl_error::drain_gl_errors;
+use failure::err_msg;
+use gl;
 
 pub trait BufferType {
     const BUFFER_TYPE: gl::types::GLuint;
 }
 
-
-pub struct Buffer<B, T> where B: BufferType {
+pub struct Buffer<B, T>
+where
+    B: BufferType,
+{
     gl: gl::Gl,
     vbo: gl::types::GLuint,
     _marker: ::std::marker::PhantomData<B>,
     _marker2: ::std::marker::PhantomData<T>,
 }
 
-impl<B, T> Buffer<B, T> where B: BufferType {
+impl<B, T> Buffer<B, T>
+where
+    B: BufferType,
+{
     pub fn new(gl: &gl::Gl) -> Buffer<B, T> {
         let mut vbo: gl::types::GLuint = 0;
         unsafe {
@@ -29,7 +34,7 @@ impl<B, T> Buffer<B, T> where B: BufferType {
         }
     }
 
-    pub fn target()->gl::types::GLuint{
+    pub fn target() -> gl::types::GLuint {
         B::BUFFER_TYPE
     }
 
@@ -45,58 +50,67 @@ impl<B, T> Buffer<B, T> where B: BufferType {
         }
     }
 
-    pub fn mem_size(&self)->usize{
-        let mut size:gl::types::GLint = 0;
-        unsafe{
+    pub fn mem_size(&self) -> usize {
+        let mut size: gl::types::GLint = 0;
+        unsafe {
             self.bind();
-            self.gl.GetBufferParameteriv(B::BUFFER_TYPE, gl::BUFFER_SIZE, &mut size);
+            self.gl
+                .GetBufferParameteriv(B::BUFFER_TYPE, gl::BUFFER_SIZE, &mut size);
             drain_gl_errors(&self.gl);
             self.unbind();
         }
         let size = size as usize;
-        assert_eq!(size%std::mem::size_of::<T>(),0);
+        assert_eq!(size % std::mem::size_of::<T>(), 0);
         size
     }
-    pub fn len(&self)->usize{
-        self.mem_size()/std::mem::size_of::<T>()
+    pub fn len(&self) -> usize {
+        self.mem_size() / std::mem::size_of::<T>()
     }
 
     pub fn static_draw_data(&self, data: &[T]) {
         self.bind();
         unsafe {
             self.gl.BufferData(
-                B::BUFFER_TYPE, // target
+                B::BUFFER_TYPE,                                                     // target
                 (data.len() * ::std::mem::size_of::<T>()) as gl::types::GLsizeiptr, // size of data in bytes
                 data.as_ptr() as *const gl::types::GLvoid, // pointer to data
-                gl::STATIC_DRAW, // usage
+                gl::STATIC_DRAW,                           // usage
             );
         }
         self.unbind();
     }
 
     pub fn update(&self, data: &[T]) -> Result<(), failure::Error> {
-        let len = data.len()*std::mem::size_of::<T>();
-        if self.len() == len {
+        let len = data.len();
+        let old_len = self.len();
+        if old_len == len {
             self.bind();
             unsafe {
-                self.gl.BufferSubData(B::BUFFER_TYPE, 0, len as gl::types::GLsizeiptr, data.as_ptr() as *const gl::types::GLvoid);
+                self.gl.BufferSubData(
+                    B::BUFFER_TYPE,
+                    0,
+                    (len * std::mem::size_of::<T>()) as gl::types::GLsizeiptr,
+                    data.as_ptr() as *const gl::types::GLvoid,
+                );
             }
             self.unbind();
             Ok(())
         } else {
-            Err("Incorrect size").map_err(err_msg)
+            Err(format!("Incorrect size {}, expected {}",len,old_len)).map_err(err_msg)
         }
     }
 }
 
-impl<B, T> Drop for Buffer<B, T> where B: BufferType {
+impl<B, T> Drop for Buffer<B, T>
+where
+    B: BufferType,
+{
     fn drop(&mut self) {
         unsafe {
             self.gl.DeleteBuffers(1, &mut self.vbo);
         }
     }
 }
-
 
 pub struct BufferTypeArray;
 
@@ -112,7 +126,6 @@ impl BufferType for BufferTypeElementArray {
 
 pub type ArrayBuffer<T> = Buffer<BufferTypeArray, T>;
 pub type ElementArrayBuffer<T> = Buffer<BufferTypeElementArray, T>;
-
 
 pub struct VertexArray {
     gl: gl::Gl,

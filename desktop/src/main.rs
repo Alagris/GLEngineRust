@@ -1,33 +1,30 @@
 #![feature(array_map)]
-extern crate sdl2;
+#![feature(maybe_uninit_array_assume_init)]
+extern crate genmesh;
 extern crate gl;
 extern crate image;
-extern crate genmesh;
-extern crate rand;
-extern crate num_traits;
 extern crate nalgebra_glm as glm;
-#[macro_use] extern crate failure;
-#[macro_use] extern crate render_gl_derive;
-#[macro_use] extern crate num_derive;
+extern crate num_traits;
+extern crate rand;
+extern crate sdl2;
+#[macro_use]
+extern crate failure;
+#[macro_use]
+extern crate render_gl_derive;
+#[macro_use]
+extern crate num_derive;
 
-use std::ffi::CString;
-use gl::Gl;
-use resources::Resources;
-use std::path::Path;
-use crate::render_gl::Program;
-
+mod blocks;
+mod demos;
 mod render_gl;
 mod resources;
 mod scene;
-mod demos;
-mod blocks;
 
 fn main() {
     if let Err(e) = scene::run() {
         println!("Error! {}", failure_to_string(e));
     }
 }
-
 
 pub fn failure_to_string(e: failure::Error) -> String {
     use std::fmt::Write;

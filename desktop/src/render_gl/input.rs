@@ -1,5 +1,5 @@
-use sdl2;
 use nalgebra_glm as glm;
+use sdl2;
 
 pub struct Input {
     event_pump: sdl2::EventPump,
@@ -27,12 +27,37 @@ pub struct Input {
     no3: bool,
     no4: bool,
     no5: bool,
-
 }
 
 impl Input {
     pub fn new(event_pump: sdl2::EventPump) -> Input {
-        Input { event_pump, quit: false, escape: false, left: false, right: false, up: false, down: false, forward: false, backward: false, resize_w: 0, resize_h: 0, has_resize: false, mouse_move_x: 0, mouse_move_y: 0, mouse_move_xrel: 0, mouse_move_yrel: 0, has_mouse_move: false, q: false, e: false, r: false, no1: false, no2: false, no3: false, no4: false, no5: false }
+        Input {
+            event_pump,
+            quit: false,
+            escape: false,
+            left: false,
+            right: false,
+            up: false,
+            down: false,
+            forward: false,
+            backward: false,
+            resize_w: 0,
+            resize_h: 0,
+            has_resize: false,
+            mouse_move_x: 0,
+            mouse_move_y: 0,
+            mouse_move_xrel: 0,
+            mouse_move_yrel: 0,
+            has_mouse_move: false,
+            q: false,
+            e: false,
+            r: false,
+            no1: false,
+            no2: false,
+            no3: false,
+            no4: false,
+            no5: false,
+        }
     }
     pub fn poll(&mut self) {
         self.has_resize = false;
@@ -48,50 +73,116 @@ impl Input {
                     self.resize_h = h;
                     self.has_resize = true;
                 }
-//                    viewport.update_size(w, h);
-//                    viewport.set_used(&gl);
-//                    projection_matrix = glm::perspective((viewport.w as f32) / (viewport.h as f32), fov, 0.1f32, 20f32);
-                sdl2::event::Event::KeyDown { keycode, .. } => if let Some(k) = keycode {
-                    match k {
-                        sdl2::keyboard::Keycode::Num1 => { self.no1 = true; }
-                        sdl2::keyboard::Keycode::Num2 => { self.no2 = true; }
-                        sdl2::keyboard::Keycode::Num3 => { self.no3 = true; }
-                        sdl2::keyboard::Keycode::Num4 => { self.no4 = true; }
-                        sdl2::keyboard::Keycode::Num5 => { self.no5 = true; }
-                        sdl2::keyboard::Keycode::R => { self.r = true; }
-                        sdl2::keyboard::Keycode::E => { self.e = true; }
-                        sdl2::keyboard::Keycode::Q => { self.q = true; }
-                        sdl2::keyboard::Keycode::D => { self.right = true; }
-                        sdl2::keyboard::Keycode::A => { self.left = true; }
-                        sdl2::keyboard::Keycode::W => { self.forward = true; }
-                        sdl2::keyboard::Keycode::S => { self.backward = true; }
-                        sdl2::keyboard::Keycode::Space => { self.up = true; }
-                        sdl2::keyboard::Keycode::LShift => { self.down = true; }
-                        sdl2::keyboard::Keycode::Escape => { self.escape = true; }
-                        _ => ()
+                //                    viewport.update_size(w, h);
+                //                    viewport.set_used(&gl);
+                //                    projection_matrix = glm::perspective((viewport.w as f32) / (viewport.h as f32), fov, 0.1f32, 20f32);
+                sdl2::event::Event::KeyDown { keycode, .. } => {
+                    if let Some(k) = keycode {
+                        match k {
+                            sdl2::keyboard::Keycode::Num1 => {
+                                self.no1 = true;
+                            }
+                            sdl2::keyboard::Keycode::Num2 => {
+                                self.no2 = true;
+                            }
+                            sdl2::keyboard::Keycode::Num3 => {
+                                self.no3 = true;
+                            }
+                            sdl2::keyboard::Keycode::Num4 => {
+                                self.no4 = true;
+                            }
+                            sdl2::keyboard::Keycode::Num5 => {
+                                self.no5 = true;
+                            }
+                            sdl2::keyboard::Keycode::R => {
+                                self.r = true;
+                            }
+                            sdl2::keyboard::Keycode::E => {
+                                self.e = true;
+                            }
+                            sdl2::keyboard::Keycode::Q => {
+                                self.q = true;
+                            }
+                            sdl2::keyboard::Keycode::D => {
+                                self.right = true;
+                            }
+                            sdl2::keyboard::Keycode::A => {
+                                self.left = true;
+                            }
+                            sdl2::keyboard::Keycode::W => {
+                                self.forward = true;
+                            }
+                            sdl2::keyboard::Keycode::S => {
+                                self.backward = true;
+                            }
+                            sdl2::keyboard::Keycode::Space => {
+                                self.up = true;
+                            }
+                            sdl2::keyboard::Keycode::LShift => {
+                                self.down = true;
+                            }
+                            sdl2::keyboard::Keycode::Escape => {
+                                self.escape = true;
+                            }
+                            _ => (),
+                        }
                     }
                 }
-                sdl2::event::Event::KeyUp { keycode, .. } => if let Some(k) = keycode {
-                    match k {
-                        sdl2::keyboard::Keycode::Num1 => { self.no1 = false; }
-                        sdl2::keyboard::Keycode::Num2 => { self.no2 = false; }
-                        sdl2::keyboard::Keycode::Num3 => { self.no3 = false; }
-                        sdl2::keyboard::Keycode::Num4 => { self.no4 = false; }
-                        sdl2::keyboard::Keycode::Num5 => { self.no5 = false; }
-                        sdl2::keyboard::Keycode::R => { self.r = false; }
-                        sdl2::keyboard::Keycode::E => { self.e = false; }
-                        sdl2::keyboard::Keycode::Q => { self.q = false; }
-                        sdl2::keyboard::Keycode::D => { self.right = false; }
-                        sdl2::keyboard::Keycode::A => { self.left = false; }
-                        sdl2::keyboard::Keycode::W => { self.forward = false; }
-                        sdl2::keyboard::Keycode::S => { self.backward = false; }
-                        sdl2::keyboard::Keycode::Space => { self.up = false; }
-                        sdl2::keyboard::Keycode::LShift => { self.down = false; }
-                        sdl2::keyboard::Keycode::Escape => { self.escape = false; }
-                        _ => ()
+                sdl2::event::Event::KeyUp { keycode, .. } => {
+                    if let Some(k) = keycode {
+                        match k {
+                            sdl2::keyboard::Keycode::Num1 => {
+                                self.no1 = false;
+                            }
+                            sdl2::keyboard::Keycode::Num2 => {
+                                self.no2 = false;
+                            }
+                            sdl2::keyboard::Keycode::Num3 => {
+                                self.no3 = false;
+                            }
+                            sdl2::keyboard::Keycode::Num4 => {
+                                self.no4 = false;
+                            }
+                            sdl2::keyboard::Keycode::Num5 => {
+                                self.no5 = false;
+                            }
+                            sdl2::keyboard::Keycode::R => {
+                                self.r = false;
+                            }
+                            sdl2::keyboard::Keycode::E => {
+                                self.e = false;
+                            }
+                            sdl2::keyboard::Keycode::Q => {
+                                self.q = false;
+                            }
+                            sdl2::keyboard::Keycode::D => {
+                                self.right = false;
+                            }
+                            sdl2::keyboard::Keycode::A => {
+                                self.left = false;
+                            }
+                            sdl2::keyboard::Keycode::W => {
+                                self.forward = false;
+                            }
+                            sdl2::keyboard::Keycode::S => {
+                                self.backward = false;
+                            }
+                            sdl2::keyboard::Keycode::Space => {
+                                self.up = false;
+                            }
+                            sdl2::keyboard::Keycode::LShift => {
+                                self.down = false;
+                            }
+                            sdl2::keyboard::Keycode::Escape => {
+                                self.escape = false;
+                            }
+                            _ => (),
+                        }
                     }
                 }
-                sdl2::event::Event::MouseMotion { x, y, xrel, yrel, .. } => {
+                sdl2::event::Event::MouseMotion {
+                    x, y, xrel, yrel, ..
+                } => {
                     self.mouse_move_x = x;
                     self.mouse_move_y = y;
                     self.mouse_move_xrel = xrel;

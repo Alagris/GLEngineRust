@@ -7,12 +7,12 @@ pub struct FpsCounter {
 }
 
 impl FpsCounter {
-    pub fn new(mut timer: sdl2::TimerSubsystem) -> Self {
+    pub fn new(timer: sdl2::TimerSubsystem) -> Self {
         let previous = timer.ticks();
-        Self{
+        Self {
             timer,
             previous,
-            delta: 0
+            delta: 0,
         }
     }
     pub fn update(&mut self) {
@@ -20,10 +20,10 @@ impl FpsCounter {
         self.delta = current - self.previous;
         self.previous = current;
     }
-    pub fn delta(&self)->u32{
+    pub fn delta(&self) -> u32 {
         self.delta
     }
-    pub fn delta_f32(&self)->f32{
+    pub fn delta_f32(&self) -> f32 {
         self.delta as f32
     }
 }

@@ -6,17 +6,15 @@ pub struct ColorBuffer {
 
 impl ColorBuffer {
     pub fn new(color: glm::TVec4<f32>) -> ColorBuffer {
-        ColorBuffer {
-            color,
-        }
+        ColorBuffer { color }
     }
 
     pub fn from_color(color: glm::TVec3<f32>) -> ColorBuffer {
-        Self::new(glm::vec4(color[0],color[1],color[2],1f32))
+        Self::new(glm::vec4(color[0], color[1], color[2], 1f32))
     }
 
     pub fn update_color(&mut self, color: glm::TVec3<f32>) {
-        self.color = glm::vec4(color[0],color[1],color[2],1f32);
+        self.color = glm::vec4(color[0], color[1], color[2], 1f32);
     }
 
     pub fn set_used(&self, gl: &gl::Gl) {

@@ -1,14 +1,13 @@
+use crate::resources::Resources;
+use failure::err_msg;
 use gl;
-use image::{GenericImage, DynamicImage};
+use image::DynamicImage;
 use image::GenericImageView;
 use std::path::Path;
-use failure::err_msg;
-use crate::resources::Resources;
 
 pub trait TextureType {
     const TEXTURE_TYPE: gl::types::GLuint;
 }
-
 
 pub struct Texture2D;
 
@@ -47,9 +46,13 @@ impl<B: TextureType> Tex<B> {
 }
 
 impl Tex<Texture2D> {
-    pub fn from_res(resource_name: &str, res:&Resources, gl: &gl::Gl) -> Result<Self, failure::Error> {
-        println!("Loading texture {}",resource_name);
-        Self::new(&res.path(resource_name),gl)
+    pub fn from_res(
+        resource_name: &str,
+        res: &Resources,
+        gl: &gl::Gl,
+    ) -> Result<Self, failure::Error> {
+        println!("Loading texture {}", resource_name);
+        Self::new(&res.path(resource_name), gl)
     }
     pub fn new(file: &Path, gl: &gl::Gl) -> Result<Self, failure::Error> {
         let mut texture = 0;
@@ -58,55 +61,70 @@ impl Tex<Texture2D> {
         unsafe {
             gl.GenTextures(1, &mut texture);
             Self::bind_texture(gl, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-            // set the texture wrapping parameters
+                                             // set the texture wrapping parameters
             Self::tex_parameteri(gl, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); // set texture wrapping to gl::REPEAT (default wrapping method)
-            Self::tex_parameteri(gl ,gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+            Self::tex_parameteri(gl, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
             // set texture filtering parameters
-            Self::tex_parameteri( gl,gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-            Self::tex_parameteri( gl,gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            Self::tex_parameteri(gl, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            Self::tex_parameteri(gl, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
             // load image, create texture and generate mipmaps
-            gl.TexImage2D(gl::TEXTURE_2D,
-                          0,
-                          gl::RGB as i32,
-                          img.width() as i32,
-                          img.height() as i32,
-                          0,
-                          gl::RGB,
-                          gl::UNSIGNED_BYTE,
-                          data.as_ptr() as *const gl::types::GLvoid);
+            gl.TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGB as i32,
+                img.width() as i32,
+                img.height() as i32,
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                data.as_ptr() as *const gl::types::GLvoid,
+            );
             gl.GenerateMipmap(gl::TEXTURE_2D);
-            Self::bind_texture( gl,0);
+            Self::bind_texture(gl, 0);
         }
 
-        Ok(Self { gl: gl.clone(), texture, _marker: ::std::marker::PhantomData })
+        Ok(Self {
+            gl: gl.clone(),
+            texture,
+            _marker: ::std::marker::PhantomData,
+        })
     }
 }
 
 impl Tex<TextureCube> {
-    pub fn from_res(files: [&str; 6], res:&Resources, gl: &gl::Gl) -> Result<Self, failure::Error> {
-        println!("Loading cubemap from: {:?}",files);
-        let files = files.map(|f|res.path(f));
+    pub fn from_res(
+        files: [&str; 6],
+        res: &Resources,
+        gl: &gl::Gl,
+    ) -> Result<Self, failure::Error> {
+        println!("Loading cubemap from: {:?}", files);
+        let files = files.map(|f| res.path(f));
         Self::new(files, gl)
     }
     pub fn new(files: [impl AsRef<Path>; 6], gl: &gl::Gl) -> Result<Self, failure::Error> {
         let mut texture = 0;
-        let data: Result<Vec<DynamicImage>, _> = files.iter().map(|file| image::open(file).map_err(err_msg)).collect();
+        let data: Result<Vec<DynamicImage>, _> = files
+            .iter()
+            .map(|file| image::open(file).map_err(err_msg))
+            .collect();
         let data = data?;
         unsafe {
             gl.GenTextures(1, &mut texture);
-            Self::bind_texture( gl,texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+            Self::bind_texture(gl, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
         }
         for (i, img) in data.iter().enumerate() {
             unsafe {
-                gl.TexImage2D(gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32,
-                              0,
-                              gl::RGB as i32,
-                              img.width() as i32,
-                              img.height() as i32,
-                              0,
-                              gl::RGB,
-                              gl::UNSIGNED_BYTE,
-                              img.as_bytes().as_ptr() as *const gl::types::GLvoid);
+                gl.TexImage2D(
+                    gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32,
+                    0,
+                    gl::RGB as i32,
+                    img.width() as i32,
+                    img.height() as i32,
+                    0,
+                    gl::RGB,
+                    gl::UNSIGNED_BYTE,
+                    img.as_bytes().as_ptr() as *const gl::types::GLvoid,
+                );
             }
         }
         unsafe {
@@ -118,11 +136,15 @@ impl Tex<TextureCube> {
             Self::tex_parameteri(gl, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
             Self::tex_parameteri(gl, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
             // load image, create texture and generate mipmaps
-            Self::bind_texture( gl,0);
+            Self::bind_texture(gl, 0);
             //gl.GenerateMipmap(gl::TEXTURE_CUBE_MAP);
         }
 
-        Ok(Self { gl: gl.clone(), texture, _marker: ::std::marker::PhantomData })
+        Ok(Self {
+            gl: gl.clone(),
+            texture,
+            _marker: ::std::marker::PhantomData,
+        })
     }
 }
 
@@ -136,4 +158,3 @@ impl<B: TextureType> Drop for Tex<B> {
 
 pub type Texture = Tex<Texture2D>;
 pub type Cubemap = Tex<TextureCube>;
-
