@@ -62,6 +62,7 @@ impl<B, T> Buffer<B, T> where B: BufferType {
     }
 
     pub fn static_draw_data(&self, data: &[T]) {
+        self.bind();
         unsafe {
             self.gl.BufferData(
                 B::BUFFER_TYPE, // target
@@ -70,6 +71,7 @@ impl<B, T> Buffer<B, T> where B: BufferType {
                 gl::STATIC_DRAW, // usage
             );
         }
+        self.unbind();
     }
 
     pub fn update(&self, data: &[T]) -> Result<(), failure::Error> {

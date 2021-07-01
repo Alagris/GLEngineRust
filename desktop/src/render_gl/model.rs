@@ -44,12 +44,8 @@ impl <T:VertexAttribPointers> Model<T> {
         let ebo = ElementArrayBuffer::new(gl);
         let vao = VertexArray::new(gl);
 
-        vbo.bind();
         vbo.static_draw_data(vertices);
-        vbo.unbind();
-        ebo.bind();
         ebo.static_draw_data(indices);
-        ebo.unbind();
 
         vao.bind();
         vbo.bind();

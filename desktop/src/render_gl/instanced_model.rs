@@ -44,13 +44,13 @@ impl <T:VertexAttribPointers,I:VertexAttribPointers> InstancedModel<T,I> {
     pub fn new(instances:&[I],model:Model<T>) -> Result<Self, failure::Error> {
         let ibo = ArrayBuffer::new(model.gl());
 
-        ibo.bind();
         ibo.static_draw_data(instances);
-        ibo.unbind();
 
         model.vao().bind();
         model.ebo().bind();
+        ibo.bind();
         I::vertex_attrib_pointers(model.gl());
+        ibo.unbind();
         model.ebo().unbind();
         model.vao().unbind();
         drain_gl_errors(model.gl());

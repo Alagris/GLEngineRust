@@ -65,7 +65,6 @@ pub fn run() -> Result<(), failure::Error> {
 
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
     gl_attr.set_context_version(GL_VER_MAJOR, GL_VER_MINOR);
-
     let window = video_subsystem
         .window("Game", 900, 700)
         .opengl()
@@ -76,16 +75,21 @@ pub fn run() -> Result<(), failure::Error> {
     let gl = gl::Gl::load_with(|s| {
         video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void
     });
+    drain_gl_errors(&gl);
     unsafe {
         gl.DepthFunc(gl::LESS);
+        drain_gl_errors(&gl);
         gl.Enable(gl::DEPTH_TEST);
+        drain_gl_errors(&gl);
 //        gl.Enable(gl::CULL_FACE);
-        gl.Enable(gl::DEBUG_OUTPUT);
         if supported_since(4,3) {
+            gl.Enable(gl::DEBUG_OUTPUT);
+            drain_gl_errors(&gl);
             gl.DebugMessageCallback(Some(message_callback), 0 as *const gl::types::GLvoid);
+            drain_gl_errors(&gl);
         }
     }
-    drain_gl_errors(&gl);
+
 
     crate::demos::particles::run(gl,res,sdl,window,timer)
 }
