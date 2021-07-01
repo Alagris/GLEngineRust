@@ -3,6 +3,7 @@ use std::path::Path;
 use std::ffi::CStr;
 use failure::err_msg;
 use crate::render_gl;
+use crate::render_gl::gl_error::drain_gl_errors;
 
 pub const GL_VER_MINOR:u8 = 1;
 pub const GL_VER_MAJOR:u8 = 4;
@@ -84,7 +85,7 @@ pub fn run() -> Result<(), failure::Error> {
             gl.DebugMessageCallback(Some(message_callback), 0 as *const gl::types::GLvoid);
         }
     }
-    // set up shader program
+    drain_gl_errors(&gl);
 
-    crate::demos::parallax::run(gl,res,sdl,window,timer)
+    crate::demos::particles::run(gl,res,sdl,window,timer)
 }

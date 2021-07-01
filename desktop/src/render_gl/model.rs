@@ -17,6 +17,7 @@ use std::num::NonZeroUsize;
 use std::hash::Hash;
 use crate::render_gl::util::type_name;
 use std::fmt::Debug;
+use crate::render_gl::gl_error::drain_gl_errors;
 
 pub struct Model<T:VertexAttribPointers> {
     vbo: ArrayBuffer<T>,
@@ -39,9 +40,9 @@ impl <T:VertexAttribPointers> Model<T> {
         &self.vao
     }
     pub fn new(vertices:&[T],indices:&[i32], gl: &gl::Gl) -> Result<Self, failure::Error> {
-        let vbo = ArrayBuffer::new(&gl);
-        let ebo = ElementArrayBuffer::new(&gl);
-        let vao = VertexArray::new(&gl);
+        let vbo = ArrayBuffer::new(gl);
+        let ebo = ElementArrayBuffer::new(gl);
+        let vao = VertexArray::new(gl);
 
         vbo.bind();
         vbo.static_draw_data(vertices);
@@ -53,10 +54,11 @@ impl <T:VertexAttribPointers> Model<T> {
         vao.bind();
         vbo.bind();
         ebo.bind();
-        T::vertex_attrib_pointers(&gl);
+        T::vertex_attrib_pointers(gl);
         ebo.unbind();
         vbo.unbind();
         vao.unbind();
+        drain_gl_errors(gl);
         let me = Self { vbo, ebo, vao, gl: gl.clone() };
         assert_eq!(me.len_indices(),indices.len());
         assert_eq!(me.len_vertices(),vertices.len());
@@ -66,6 +68,10 @@ impl <T:VertexAttribPointers> Model<T> {
     pub fn bind(&self) {
         self.vao.bind();
         self.ebo.bind();
+    }
+    pub fn unbind(&self) {
+        self.vao.unbind();
+        self.ebo.unbind();
     }
     pub fn len_vertices(&self)->usize{
         self.vbo.len()
@@ -78,6 +84,8 @@ impl <T:VertexAttribPointers> Model<T> {
         unsafe {
             self.bind();
             self.gl.DrawElements(primitive, indices, gl::UNSIGNED_INT, ptr::null());
+            self.unbind();
+            drain_gl_errors(self.gl());
         }
     }
     pub fn draw_triangles(&self) {

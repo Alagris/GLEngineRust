@@ -14,4 +14,5 @@ pub mod terrain;
 pub mod model;
 pub mod shapes;
 pub mod util;
-pub mod binder;
+pub mod instanced_model;
+pub mod gl_error;

@@ -224,7 +224,6 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
         sky_box_program.set_used();
         sky_box_texture_uniform.map(|u| sky_box_program.set_uniform_cube_texture(u,&sky_box_texture,0));
         sky_box_vp_uniform.map(|u| sky_box_program.set_uniform_matrix4fv(u,(projection_matrix * &glm::mat3_to_mat4(&glm::mat4_to_mat3(&v))).as_slice()));
-        model_cube.bind();
         model_cube.draw_triangles();
         unsafe {
             gl.DepthMask(gl::TRUE);
@@ -247,7 +246,6 @@ pub fn run(gl:gl::Gl, res:Resources,sdl:Sdl,window:Window,timer:TimerSubsystem) 
         texture_normal_uniform.map(|u| shader_program.set_uniform_texture(u, &texture_normal, 1));
         texture_depth_uniform.map(|u| shader_program.set_uniform_texture(u, &texture_depth, 2));
         mv3x3_uniform.map(|u| shader_program.set_uniform_matrix3fv(u, glm::mat4_to_mat3(&mv).as_slice()));
-        model_susanne.bind();
         model_susanne.draw_triangles();
 
 //        for ball in &balls {

@@ -1,8 +1,23 @@
 use gl;
 
-
 pub trait VertexAttribPointers{
     fn vertex_attrib_pointers(gl: &::gl::Gl);
+}
+
+pub trait VertexAttrib{
+    const NUMBER_OF_COMPONENTS:gl::types::GLint;
+    const GL_TYPE:gl::types::GLenum;
+    unsafe fn vertex_attrib_pointer(gl: &gl::Gl, stride: usize, location: usize, offset: usize) {
+        gl.EnableVertexAttribArray(location as gl::types::GLuint);
+        gl.VertexAttribPointer(
+            location as gl::types::GLuint,
+            Self::NUMBER_OF_COMPONENTS, // the number of components per generic vertex attribute
+            Self::GL_TYPE, // data type
+            gl::FALSE, // normalized (int-to-float conversion)
+            stride as gl::types::GLint,
+            offset as *const gl::types::GLvoid,
+        );
+    }
 }
 
 #[allow(non_camel_case_types)]
@@ -22,23 +37,14 @@ impl f32_f32_f32 {
             d2,
         }
     }
-
-    pub unsafe fn vertex_attrib_pointer(gl: &gl::Gl, stride: usize, location: usize, offset: usize) {
-        gl.EnableVertexAttribArray(location as gl::types::GLuint);
-        gl.VertexAttribPointer(
-            location as gl::types::GLuint,
-            3, // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            stride as gl::types::GLint,
-            offset as *const gl::types::GLvoid,
-        );
-    }
-
     pub fn x(&self) -> f32{self.d0}
     pub fn y(&self) -> f32{self.d1}
     pub fn z(&self) -> f32{self.d2}
+}
 
+impl VertexAttrib for f32_f32_f32{
+    const NUMBER_OF_COMPONENTS: gl::types::GLint = 3;
+    const GL_TYPE: gl::types::GLenum = gl::FLOAT;
 }
 
 impl From<(f32, f32, f32)> for f32_f32_f32 {
@@ -68,20 +74,11 @@ impl f32_f32 {
             d1,
         }
     }
-
-    pub unsafe fn vertex_attrib_pointer(gl: &gl::Gl, stride: usize, location: usize, offset: usize) {
-        gl.EnableVertexAttribArray(location as gl::types::GLuint);
-        gl.VertexAttribPointer(
-            location as gl::types::GLuint,
-            2, // the number of components per generic vertex attribute
-            gl::FLOAT, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            stride as gl::types::GLint,
-            offset as *const gl::types::GLvoid,
-        );
-    }
 }
-
+impl VertexAttrib for f32_f32{
+    const NUMBER_OF_COMPONENTS: gl::types::GLint = 2;
+    const GL_TYPE: gl::types::GLenum = gl::FLOAT;
+}
 impl From<(f32, f32)> for f32_f32 {
     fn from(other: (f32, f32)) -> Self {
         f32_f32::new(other.0, other.1)
@@ -110,17 +107,12 @@ impl u8_u8 {
         }
     }
 
-    pub unsafe fn vertex_attrib_pointer(gl: &gl::Gl, stride: usize, location: usize, offset: usize) {
-        gl.EnableVertexAttribArray(location as gl::types::GLuint);
-        gl.VertexAttribPointer(
-            location as gl::types::GLuint,
-            2, // the number of components per generic vertex attribute
-            gl::UNSIGNED_BYTE, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            stride as gl::types::GLint,
-            offset as *const gl::types::GLvoid,
-        );
-    }
+}
+
+
+impl VertexAttrib for u8_u8{
+    const NUMBER_OF_COMPONENTS: gl::types::GLint = 2;
+    const GL_TYPE: gl::types::GLenum = gl::UNSIGNED_BYTE;
 }
 
 impl From<(u8, u8)> for u8_u8 {
@@ -152,20 +144,12 @@ impl u8_u8_u8 {
             d2
         }
     }
-
-    pub unsafe fn vertex_attrib_pointer(gl: &gl::Gl, stride: usize, location: usize, offset: usize) {
-        gl.EnableVertexAttribArray(location as gl::types::GLuint);
-        gl.VertexAttribPointer(
-            location as gl::types::GLuint,
-            3, // the number of components per generic vertex attribute
-            gl::UNSIGNED_BYTE, // data type
-            gl::FALSE, // normalized (int-to-float conversion)
-            stride as gl::types::GLint,
-            offset as *const gl::types::GLvoid,
-        );
-    }
 }
 
+impl VertexAttrib for u8_u8_u8{
+    const NUMBER_OF_COMPONENTS: gl::types::GLint = 2;
+    const GL_TYPE: gl::types::GLenum = gl::UNSIGNED_BYTE;
+}
 impl From<(u8, u8, u8)> for u8_u8_u8 {
     fn from(other: (u8, u8, u8)) -> Self {
         u8_u8_u8::new(other.0, other.1, other.2)
@@ -196,6 +180,22 @@ impl Vertex {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+#[derive(VertexAttribPointers)]
+pub struct Instance {
+    #[location = 10]
+    #[divisor = 1]
+    pos: f32_f32_f32, //position
+}
+
+impl Instance {
+    pub fn new(pos: impl Into<f32_f32_f32>) -> Self {
+        Self {
+            pos:pos.into(),
+        }
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]

@@ -1,5 +1,6 @@
 use gl;
 use failure::err_msg;
+use crate::render_gl::gl_error::drain_gl_errors;
 
 pub trait BufferType {
     const BUFFER_TYPE: gl::types::GLuint;
@@ -49,6 +50,7 @@ impl<B, T> Buffer<B, T> where B: BufferType {
         unsafe{
             self.bind();
             self.gl.GetBufferParameteriv(B::BUFFER_TYPE, gl::BUFFER_SIZE, &mut size);
+            drain_gl_errors(&self.gl);
             self.unbind();
         }
         let size = size as usize;
@@ -120,6 +122,7 @@ impl VertexArray {
         let mut vao: gl::types::GLuint = 0;
         unsafe {
             gl.GenVertexArrays(1, &mut vao);
+            drain_gl_errors(gl);
         }
 
         VertexArray {
@@ -131,6 +134,7 @@ impl VertexArray {
     pub fn bind(&self) {
         unsafe {
             self.gl.BindVertexArray(self.vao);
+            drain_gl_errors(&self.gl);
         }
     }
 

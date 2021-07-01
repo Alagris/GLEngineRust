@@ -14,7 +14,7 @@ use syn::token::Token;
 use syn::{Result, DeriveInput, Fields, Meta, MetaNameValue};
 
 
-#[proc_macro_derive(VertexAttribPointers, attributes(location))]
+#[proc_macro_derive(VertexAttribPointers, attributes(location, divisor))]
 pub fn vertex_attrib_pointers_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast:DeriveInput = parse_macro_input!(input as DeriveInput);
 
@@ -52,28 +52,43 @@ fn generate_impl(ast: &syn::DeriveInput) -> proc_macro2::TokenStream {
     fn generate_struct_field_vertex_attrib_pointer_call(field: &syn::Field) -> proc_macro2::TokenStream  {
         let field_name = match field.ident {
             Some(ref i) => format!("{}", i),
-            None => String::from(""),
+            None => unreachable!("This macro should not be defined for tuples"),
         };
-        let location_attr = field.attrs
-            .iter()
-            .find(|a| a.path.is_ident("location"))
-            .unwrap_or_else(|| panic!(
-                "Field {:?} is missing #[location = ?] attribute", field_name
-            ));
-        let meta = location_attr.parse_meta().unwrap();
-        let location_value_literal = match &meta{
-            Meta::NameValue(MetaNameValue{ lit: lit@ syn::Lit::Int(_) , ..}) =>  lit,
-            _ => panic!("Field {} location attribute value must be an integer literal", field_name)
-        };
+        fn find_attr(field: &syn::Field, attr_name:&str) -> Option<syn::Lit> {
+            let location_attr = field.attrs
+                .iter()
+                .find(|a| a.path.is_ident(attr_name))?;
+            let meta = location_attr.parse_meta().unwrap();
+            let value = match &meta {
+                Meta::NameValue(MetaNameValue { lit: lit @ syn::Lit::Int(_), .. }) => lit,
+                _ => panic!("Field {} location attribute value must be an integer literal", field.ident.as_ref().unwrap())
+            };
+            Some(value.clone())
+        }
+        let location_value_literal = find_attr(field, "location").unwrap_or_else(|| panic!(
+            "Field {:?} is missing #[location = ?] attribute", field_name));
+        let divisor_value_literal = find_attr(field, "divisor");
 
         let field_ty = &field.ty;
-        quote! {
-            let location = #location_value_literal;
-            unsafe {
-                #field_ty::vertex_attrib_pointer(gl, stride, location, offset);
+        if let Some(divisor_value_literal) = divisor_value_literal{
+            quote! {
+                let location = #location_value_literal;
+                unsafe {
+                    #field_ty::vertex_attrib_pointer(gl, stride, location, offset);
+                    gl.VertexAttribDivisor(location as gl::types::GLuint, #divisor_value_literal);
+                }
+                let offset = offset + ::std::mem::size_of::<#field_ty>();
             }
-            let offset = offset + ::std::mem::size_of::<#field_ty>();
+        }else {
+            quote! {
+                let location = #location_value_literal;
+                unsafe {
+                    #field_ty::vertex_attrib_pointer(gl, stride, location, offset);
+                }
+                let offset = offset + ::std::mem::size_of::<#field_ty>();
+            }
         }
+
 
     }
 
