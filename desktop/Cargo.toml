@@ -11,6 +11,8 @@ render_gl_derive = { path = "render_gl_derive" }
 failure = "0.1.8"
 nalgebra-glm = "0.13.0"
 image = "0.23.14"
+num-derive = "0.3.3"
+num-traits = "0.2.14"
 collada = "0.13.0"
 obj = "0.10.2"
 genmesh = "0.6.2"

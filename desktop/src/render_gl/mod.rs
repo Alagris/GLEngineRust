@@ -16,3 +16,5 @@ pub mod shapes;
 pub mod util;
 pub mod instanced_model;
 pub mod gl_error;
+pub mod array_model;
+pub mod logical_model;

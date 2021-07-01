@@ -4,9 +4,12 @@ extern crate gl;
 extern crate image;
 extern crate genmesh;
 extern crate rand;
+extern crate num_traits;
 extern crate nalgebra_glm as glm;
 #[macro_use] extern crate failure;
 #[macro_use] extern crate render_gl_derive;
+#[macro_use] extern crate num_derive;
+
 use std::ffi::CString;
 use gl::Gl;
 use resources::Resources;

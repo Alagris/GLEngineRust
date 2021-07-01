@@ -9,7 +9,7 @@ out VS_OUT {
     vec3 tangent;
     vec3 bitangent;
 } vs_out;
-
+const vec3[]
 void main()
 {
     gl_Position =  vec4(vertexPosition_modelspace, 1.0);
