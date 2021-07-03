@@ -16,11 +16,11 @@ impl LogicalModel {
     pub fn vao(&self) -> &VertexArray {
         &self.vao
     }
-    pub fn new(gl: &gl::Gl) -> Result<Self, failure::Error> {
-        Ok(Self {
+    pub fn new(gl: &gl::Gl) -> Self{
+        Self {
             vao: VertexArray::new(gl),
             gl: gl.clone(),
-        })
+        }
     }
 
     pub fn bind(&self) {

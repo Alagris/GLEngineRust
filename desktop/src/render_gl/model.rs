@@ -1,4 +1,4 @@
-use crate::render_gl::buffer::{ArrayBuffer, ElementArrayBuffer, VertexArray};
+use crate::render_gl::buffer::{ArrayBuffer, ElementArrayBuffer, VertexArray, Buffer, BufferTypeArray, BufferUsage, AnyBuffer};
 use crate::render_gl::data::{
     f32_f32_f32, VertexAttribPointers, VertexTex, VertexTexNor, VertexTexNorTan,
 };
@@ -17,16 +17,19 @@ use crate::render_gl::util::type_name;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-pub struct Model<T: VertexAttribPointers> {
-    vbo: ArrayBuffer<T>,
+pub struct Model<T: VertexAttribPointers, TU:BufferUsage> {
+    vbo: Buffer<BufferTypeArray,T,TU>,
     ebo: ElementArrayBuffer<i32>,
     vao: VertexArray,
     gl: gl::Gl,
 }
 
-impl<T: VertexAttribPointers> Model<T> {
-    pub fn vbo(&self) -> &ArrayBuffer<T> {
+impl<T: VertexAttribPointers, TU:BufferUsage> Model<T,TU> {
+    pub fn vbo(&self) -> &Buffer<BufferTypeArray,T,TU> {
         &self.vbo
+    }
+    pub fn vbo_mut(&mut self) -> &mut Buffer<BufferTypeArray,T,TU> {
+        &mut self.vbo
     }
     pub fn gl(&self) -> &gl::Gl {
         &self.gl
@@ -37,14 +40,9 @@ impl<T: VertexAttribPointers> Model<T> {
     pub fn vao(&self) -> &VertexArray {
         &self.vao
     }
-    pub fn new(vertices: &[T], indices: &[i32], gl: &gl::Gl) -> Result<Self, failure::Error> {
-        let vbo = ArrayBuffer::new(gl);
-        let ebo = ElementArrayBuffer::new(gl);
+    pub fn new(vbo: Buffer<BufferTypeArray,T,TU>, indices: &[i32], gl: &gl::Gl) -> Self{
+        let ebo = ElementArrayBuffer::new(indices,gl);
         let vao = VertexArray::new(gl);
-
-        vbo.static_draw_data(vertices);
-        ebo.static_draw_data(indices);
-
         vao.bind();
         vbo.bind();
         ebo.bind();
@@ -53,15 +51,12 @@ impl<T: VertexAttribPointers> Model<T> {
         vbo.unbind();
         vao.unbind();
         drain_gl_errors(gl);
-        let me = Self {
+        Self {
             vbo,
             ebo,
             vao,
             gl: gl.clone(),
-        };
-        assert_eq!(me.len_indices(), indices.len());
-        assert_eq!(me.len_vertices(), vertices.len());
-        Ok(me)
+        }
     }
 
     pub fn bind(&self) {
@@ -97,9 +92,6 @@ impl<T: VertexAttribPointers> Model<T> {
     }
     pub fn draw_line_strip(&self) {
         self.draw(gl::LINE_STRIP);
-    }
-    pub fn update_vbo(&mut self, vbo: &[T]) -> Result<(), failure::Error> {
-        self.vbo.update(vbo)
     }
 }
 
@@ -185,7 +177,7 @@ impl LoadableFromObj for VertexTexNorTan {
     }
 }
 
-impl<T: LoadableFromObj + VertexAttribPointers> Model<T> {
+impl<T: LoadableFromObj + VertexAttribPointers, TU:BufferUsage> Model<T, TU> where Buffer<BufferTypeArray, T, TU>: AnyBuffer<T>{
     pub fn from_res(
         resource_name: &str,
         res: &Resources,
@@ -198,17 +190,17 @@ impl<T: LoadableFromObj + VertexAttribPointers> Model<T> {
 
     pub fn from_obj(input: impl AsRef<Path>, gl: &gl::Gl) -> Result<Self, failure::Error> {
         let (ver, ind) = T::load(input)?;
-        Self::new(ver.as_slice(), ind.as_slice(), gl)
+        Ok(Self::new(Buffer::new(ver.as_slice(),gl), ind.as_slice(), gl))
     }
 }
-impl Model<VertexTexNorTan> {
+impl <TU:BufferUsage> Model<VertexTexNorTan,TU> where Buffer<BufferTypeArray, VertexTexNorTan, TU>: AnyBuffer<VertexTexNorTan>{
     pub fn new_from_tex_nor(
         ver: &[VertexTexNor],
         indices: Vec<i32>,
         gl: &gl::Gl,
     ) -> Result<Self, failure::Error> {
         let vertices = compute_tangents(ver, indices.as_slice())?;
-        Self::new(vertices.as_slice(), indices.as_slice(), gl)
+        Ok(Self::new(Buffer::new(vertices.as_slice(),gl), indices.as_slice(), gl))
     }
 }
 pub fn load<T: Debug, K: Eq + Hash>(

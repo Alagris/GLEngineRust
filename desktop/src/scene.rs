@@ -66,8 +66,11 @@ extern "system" fn message_callback(
 
 pub fn run() -> Result<(), failure::Error> {
     let res = Resources::from_relative_exe_path(Path::new("assets")).unwrap();
-
+    #[cfg(target_os = "maxos")]{
+        sdl2::hint::set("SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK","1");
+    }
     let sdl = sdl2::init().map_err(err_msg)?;
+
     let video_subsystem = sdl.video().map_err(err_msg)?;
     let timer = sdl.timer().map_err(err_msg)?;
     let gl_attr = video_subsystem.gl_attr();
@@ -90,7 +93,6 @@ pub fn run() -> Result<(), failure::Error> {
         drain_gl_errors(&gl);
         gl.Enable(gl::DEPTH_TEST);
         drain_gl_errors(&gl);
-        //        gl.Enable(gl::CULL_FACE);
         if supported_since(4, 3) {
             gl.Enable(gl::DEBUG_OUTPUT);
             drain_gl_errors(&gl);

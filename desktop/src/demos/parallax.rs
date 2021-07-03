@@ -6,6 +6,7 @@ use crate::resources::Resources;
 use failure::err_msg;
 use sdl2::video::Window;
 use sdl2::{Sdl, TimerSubsystem};
+use crate::render_gl::buffer::BufferStaticDraw;
 
 pub fn run(
     gl: gl::Gl,
@@ -18,9 +19,9 @@ pub fn run(
     let normal_mapping_program = render_gl::Program::from_res(&gl, &res, "shaders/normal_mapping")?;
     let debug_shader_program = render_gl::Program::from_res(&gl, &res, "shaders/debug")?;
 
-    let model = Model::<VertexTexNorTan>::from_res("model/wall.obj", &res, &gl)?;
+    let model = Model::<VertexTexNorTan,BufferStaticDraw>::from_res("model/wall.obj", &res, &gl)?;
 
-    let model_susanne = Model::<VertexTexNorTan>::from_res("model/susanne.obj", &res, &gl)?;
+    let model_susanne = Model::<VertexTexNorTan,BufferStaticDraw>::from_res("model/susanne.obj", &res, &gl)?;
 
     let texture = render_gl::texture::Texture::from_res("img/bricks2.jpg", &res, &gl)?;
     let texture_normal =
@@ -126,7 +127,7 @@ pub fn run(
     let movement_speed = 0.001f32;
     let _normal_length = 1f32;
     let rotation_speed = 1f32;
-    let mut fps_counter = render_gl::fps::FpsCounter::new(timer);
+    let mut fps_counter = render_gl::fps::FpsCounter::new(timer, 60);
     let fov = 60f32 / 360f32 * std::f32::consts::PI * 2f32;
     let mut projection_matrix = glm::perspective(
         (viewport.w as f32) / (viewport.h as f32),

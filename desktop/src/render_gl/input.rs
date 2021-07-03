@@ -1,5 +1,6 @@
 use nalgebra_glm as glm;
 use sdl2;
+use sdl2::mouse::MouseButton;
 
 pub struct Input {
     event_pump: sdl2::EventPump,
@@ -19,6 +20,10 @@ pub struct Input {
     mouse_move_xrel: i32,
     mouse_move_yrel: i32,
     has_mouse_move: bool,
+    has_mouse_left_click: bool,
+    has_mouse_right_click: bool,
+    has_mouse_left_down: bool,
+    has_mouse_right_down: bool,
     q: bool,
     e: bool,
     r: bool,
@@ -49,6 +54,10 @@ impl Input {
             mouse_move_xrel: 0,
             mouse_move_yrel: 0,
             has_mouse_move: false,
+            has_mouse_left_click: false,
+            has_mouse_right_click: false,
+            has_mouse_left_down: false,
+            has_mouse_right_down: false,
             q: false,
             e: false,
             r: false,
@@ -62,7 +71,10 @@ impl Input {
     pub fn poll(&mut self) {
         self.has_resize = false;
         self.has_mouse_move = false;
+        self.has_mouse_left_click = false;
+        self.has_mouse_right_click = false;
         for event in self.event_pump.poll_iter() {
+            println!("event {:?} ",event);
             match event {
                 sdl2::event::Event::Quit { .. } => self.quit = true,
                 sdl2::event::Event::Window {
@@ -73,9 +85,6 @@ impl Input {
                     self.resize_h = h;
                     self.has_resize = true;
                 }
-                //                    viewport.update_size(w, h);
-                //                    viewport.set_used(&gl);
-                //                    projection_matrix = glm::perspective((viewport.w as f32) / (viewport.h as f32), fov, 0.1f32, 20f32);
                 sdl2::event::Event::KeyDown { keycode, .. } => {
                     if let Some(k) = keycode {
                         match k {
@@ -189,6 +198,40 @@ impl Input {
                     self.mouse_move_yrel = yrel;
                     self.has_mouse_move = true;
                 }
+                sdl2::event::Event::MouseButtonDown {
+                    mouse_btn, ..
+                } => match mouse_btn {
+                    MouseButton::Unknown => {}
+                    MouseButton::Left => {
+                        if !self.has_mouse_left_down {
+                            self.has_mouse_left_click = true;
+                        }
+                        self.has_mouse_left_down = true;
+                    }
+                    MouseButton::Middle => {}
+                    MouseButton::Right => {
+                        if !self.has_mouse_right_down {
+                            self.has_mouse_right_click = true;
+                        }
+                        self.has_mouse_right_down = true;
+                    }
+                    MouseButton::X1 => {}
+                    MouseButton::X2 => {}
+                },
+                sdl2::event::Event::MouseButtonUp {
+                    mouse_btn, ..
+                } => match mouse_btn {
+                    MouseButton::Unknown => {}
+                    MouseButton::Left => {
+                        self.has_mouse_left_down = false;
+                    }
+                    MouseButton::Middle => {}
+                    MouseButton::Right => {
+                        self.has_mouse_right_down = false;
+                    }
+                    MouseButton::X1 => {}
+                    MouseButton::X2 => {}
+                },
                 _ => {}
             }
         }
@@ -204,6 +247,18 @@ impl Input {
     }
     pub fn has_mouse_move(&self) -> bool {
         self.has_mouse_move
+    }
+    pub fn has_mouse_left_click(&self) -> bool {
+        self.has_mouse_left_click
+    }
+    pub fn has_mouse_right_click(&self) -> bool {
+        self.has_mouse_right_click
+    }
+    pub fn has_mouse_left_down(&self) -> bool {
+        self.has_mouse_left_down
+    }
+    pub fn has_mouse_right_down(&self) -> bool {
+        self.has_mouse_right_down
     }
     pub fn mouse_move_x(&self) -> i32 {
         self.mouse_move_x

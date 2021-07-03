@@ -1,4 +1,4 @@
-use crate::render_gl::buffer::ArrayBuffer;
+use crate::render_gl::buffer::{ArrayBuffer, BufferUsage, BufferTypeArray, Buffer};
 use crate::render_gl::data::VertexAttribPointers;
 
 use core::ptr;
@@ -6,33 +6,38 @@ use gl;
 
 use crate::render_gl::gl_error::drain_gl_errors;
 use crate::render_gl::model::Model;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
-pub struct InstancedModel<T: VertexAttribPointers, I: VertexAttribPointers> {
-    ibo: ArrayBuffer<I>, //instance buffer
-    model: Model<T>,
+pub struct InstancedModel<T: VertexAttribPointers, I: VertexAttribPointers, TU:BufferUsage, IU:BufferUsage> {
+    ibo: Buffer<BufferTypeArray,I,IU>, //instance buffer
+    model: Model<T,TU>,
 }
 
-impl<T: VertexAttribPointers, I: VertexAttribPointers> Deref for InstancedModel<T, I> {
-    type Target = Model<T>;
+impl<T: VertexAttribPointers, I: VertexAttribPointers, TU:BufferUsage, IU:BufferUsage> Deref for InstancedModel<T, I, TU, IU> {
+    type Target = Model<T, TU>;
 
     fn deref(&self) -> &Self::Target {
         &self.model
     }
 }
 
-impl<T: VertexAttribPointers, I: VertexAttribPointers> InstancedModel<T, I> {
+impl<T: VertexAttribPointers, I: VertexAttribPointers, TU:BufferUsage, IU:BufferUsage> DerefMut for InstancedModel<T, I, TU, IU> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.model
+    }
+}
+
+impl<T: VertexAttribPointers, I: VertexAttribPointers, TU:BufferUsage, IU:BufferUsage> InstancedModel<T, I, TU, IU> {
     pub fn len_instances(&self) -> usize {
         self.ibo.len()
     }
-    pub fn ibo(&self) -> &ArrayBuffer<I> {
+    pub fn ibo(&self) -> &Buffer<BufferTypeArray,I,IU> {
         &self.ibo
     }
-    pub fn new(instances: &[I], model: Model<T>) -> Result<Self, failure::Error> {
-        let ibo = ArrayBuffer::new(model.gl());
-
-        ibo.static_draw_data(instances);
-
+    pub fn ibo_mut(&mut self) -> &mut Buffer<BufferTypeArray,I,IU> {
+        &mut self.ibo
+    }
+    pub fn new(ibo: Buffer<BufferTypeArray,I,IU>, model: Model<T, TU>) -> Self{
         model.vao().bind();
         model.ebo().bind();
         ibo.bind();
@@ -41,9 +46,7 @@ impl<T: VertexAttribPointers, I: VertexAttribPointers> InstancedModel<T, I> {
         model.ebo().unbind();
         model.vao().unbind();
         drain_gl_errors(model.gl());
-        let me = Self { ibo, model };
-        assert_eq!(me.len_instances(), instances.len());
-        Ok(me)
+        Self { ibo, model }
     }
 
     fn draw_instanced(&self, primitive: gl::types::GLenum, instance_count: usize) {

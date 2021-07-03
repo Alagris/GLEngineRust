@@ -9,6 +9,7 @@ use crate::resources::Resources;
 use failure::err_msg;
 use sdl2::video::Window;
 use sdl2::{Sdl, TimerSubsystem};
+use crate::render_gl::buffer::{BufferStaticDraw, BufferDynamicFixedLen};
 
 pub fn run(
     gl: gl::Gl,
@@ -24,10 +25,10 @@ pub fn run(
     let graph_h = 30;
     let mut g = Graph::regular(graph_w, graph_h, 1f32);
 
-    let mut model_susanne =
-        ModelData::new_from_tex_nor(g.to_ver_nor_tex().as_slice(), g.to_indices(), &gl)?; //Model::from_file("assets/model/susanne.obj", &gl)?;
+    let mut model_terrain =
+        ModelData::<_,BufferDynamicFixedLen>::new_from_tex_nor(g.to_ver_nor_tex().as_slice(), g.to_indices(), &gl)?; //Model::from_file("assets/model/susanne.obj", &gl)?;
 
-    let model_cube = Model::<VertexTexNorTan>::from_res("model/cube.obj", &res, &gl)?;
+    let model_cube = Model::<VertexTexNorTan,BufferStaticDraw>::from_res("model/cube.obj", &res, &gl)?;
 
     let texture = render_gl::texture::Texture::from_res("img/bricks2.jpg", &res, &gl)?;
     let texture_normal =
@@ -108,7 +109,7 @@ pub fn run(
     let mut light_strength = 20f32;
     let mut movement_speed = 0.01f32;
     let rotation_speed = 1f32;
-    let mut fps_counter = render_gl::fps::FpsCounter::new(timer);
+    let mut fps_counter = render_gl::fps::FpsCounter::new(timer,60);
     let fov = 60f32 / 360f32 * std::f32::consts::PI * 2f32;
     let mut projection_matrix = glm::perspective(
         (viewport.w as f32) / (viewport.h as f32),
@@ -186,7 +187,7 @@ pub fn run(
                 1f32,
                 1f32,
             );
-            model_susanne.update_from_tex_nor(g.to_ver_nor_tex().as_slice())?;
+            model_terrain.update_from_tex_nor(g.to_ver_nor_tex().as_slice())?;
         }
         if input.is_2() {
             movement_speed += 0.00001f32;
@@ -237,7 +238,7 @@ pub fn run(
         texture_depth_uniform.map(|u| shader_program.set_uniform_texture(u, &texture_depth, 2));
         mv3x3_uniform
             .map(|u| shader_program.set_uniform_matrix3fv(u, glm::mat4_to_mat3(&mv).as_slice()));
-        model_susanne.draw_triangles();
+        model_terrain.draw_triangles();
 
 
         window.gl_swap_window();

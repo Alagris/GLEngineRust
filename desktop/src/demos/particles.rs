@@ -10,6 +10,7 @@ use sdl2::{Sdl, TimerSubsystem};
 use crate::render_gl::data::{Instance, VertexTex};
 use crate::render_gl::instanced_model::InstancedModel;
 use rand::random;
+use crate::render_gl::buffer::{BufferStaticDraw, Buffer, AnyBuffer};
 
 pub fn run(
     gl: gl::Gl,
@@ -21,7 +22,7 @@ pub fn run(
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/particles")?;
 
     let texture = render_gl::texture::Texture::from_res("img/bricks2.jpg", &res, &gl)?;
-    let model = Model::<VertexTex>::from_res("model/wall.obj", &res, &gl)?;
+    let model = Model::<VertexTex,BufferStaticDraw>::from_res("model/wall.obj", &res, &gl)?;
     fn r() -> f32 {
         let radius = 10f32;
         random::<f32>() * radius
@@ -29,7 +30,7 @@ pub fn run(
     let instances = (0..100)
         .map(|_| Instance::new(&[r(), r(), r()]))
         .collect::<Vec<Instance>>();
-    let instances = InstancedModel::new(&instances, model)?;
+    let instances = InstancedModel::new(Buffer::<_,_,BufferStaticDraw>::new(&instances,&gl), model);
     // set up shared state for window
     let mut viewport = render_gl::Viewport::for_window(900, 700);
     viewport.set_used(&gl);
@@ -59,7 +60,7 @@ pub fn run(
     let mut location = glm::vec4(0f32, 2f32, 2f32, 0f32);
     let movement_speed = 0.001f32;
     let rotation_speed = 1f32;
-    let mut fps_counter = render_gl::fps::FpsCounter::new(timer);
+    let mut fps_counter = render_gl::fps::FpsCounter::new(timer, 60);
     let fov = 60f32 / 360f32 * std::f32::consts::PI * 2f32;
     let mut projection_matrix = glm::perspective(
         (viewport.w as f32) / (viewport.h as f32),

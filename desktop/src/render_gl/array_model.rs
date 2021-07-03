@@ -1,19 +1,22 @@
-use crate::render_gl::buffer::{ArrayBuffer, VertexArray};
+use crate::render_gl::buffer::{ArrayBuffer, VertexArray, BufferUsage, BufferTypeArray, Buffer};
 use crate::render_gl::data::VertexAttribPointers;
 
 use gl;
 
 use crate::render_gl::gl_error::drain_gl_errors;
 
-pub struct ArrayModel<T: VertexAttribPointers> {
-    vbo: ArrayBuffer<T>,
+pub struct ArrayModel<T: VertexAttribPointers, U:BufferUsage> {
+    vbo: Buffer<BufferTypeArray,T,U>,
     vao: VertexArray,
     gl: gl::Gl,
 }
 
-impl<T: VertexAttribPointers> ArrayModel<T> {
-    pub fn vbo(&self) -> &ArrayBuffer<T> {
+impl<T: VertexAttribPointers, U:BufferUsage> ArrayModel<T,U> {
+    pub fn vbo(&self) -> &Buffer<BufferTypeArray,T,U> {
         &self.vbo
+    }
+    pub fn vbo_mut(&mut self) -> &mut Buffer<BufferTypeArray,T,U> {
+        &mut self.vbo
     }
     pub fn gl(&self) -> &gl::Gl {
         &self.gl
@@ -21,25 +24,19 @@ impl<T: VertexAttribPointers> ArrayModel<T> {
     pub fn vao(&self) -> &VertexArray {
         &self.vao
     }
-    pub fn new(vertices: &[T], gl: &gl::Gl) -> Result<Self, failure::Error> {
-        let vbo = ArrayBuffer::new(gl);
+    pub fn new(vbo: Buffer<BufferTypeArray,T,U>, gl: &gl::Gl) -> Self{
         let vao = VertexArray::new(gl);
-
-        vbo.static_draw_data(vertices);
-
         vao.bind();
         vbo.bind();
         T::vertex_attrib_pointers(gl);
         vbo.unbind();
         vao.unbind();
         drain_gl_errors(gl);
-        let me = Self {
+        Self {
             vbo,
             vao,
             gl: gl.clone(),
-        };
-        assert_eq!(me.len_vertices(), vertices.len());
-        Ok(me)
+        }
     }
 
     pub fn bind(&self) {
@@ -69,8 +66,5 @@ impl<T: VertexAttribPointers> ArrayModel<T> {
     }
     pub fn draw_line_strip(&self) {
         self.draw(gl::LINE_STRIP);
-    }
-    pub fn update_vbo(&mut self, vbo: &[T]) -> Result<(), failure::Error> {
-        self.vbo.update(vbo)
     }
 }
