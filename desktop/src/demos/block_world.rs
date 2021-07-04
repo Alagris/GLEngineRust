@@ -14,6 +14,7 @@ use crate::render_gl::instanced_logical_model::InstancedLogicalModel;
 use crate::render_gl::buffer::{DynamicBuffer, AnyBuffer};
 use crate::render_gl::texture::Filter::Nearest;
 use crate::blocks::block_properties::{STONE, GRASS, GLASS, CRAFTING, SLAB, ICE, LEAVES, TNT};
+use crate::render_gl::uniform_buffer::UniformBuffer;
 
 pub fn run(
     gl: gl::Gl,
@@ -48,11 +49,16 @@ pub fn run(
             }
         }
     }
-
+    struct Matrices{
+        mvp:glm::Mat4,
+        mv:glm::Mat4
+    }
+    let mut matrices = UniformBuffer::new(Matrices{ mvp: glm::identity(), mv: glm::identity() },&gl);
     let texture_uniform = warn_ok(shader_program.get_uniform_texture("myTextureSampler").map_err(err_msg)).unwrap();
-    let mvp_uniform = warn_ok(shader_program.get_uniform_matrix4fv("MVP").map_err(err_msg)).unwrap();
-    let orb_mvp_uniform = warn_ok(orb_program.get_uniform_matrix4fv("MVP").map_err(err_msg)).unwrap();
-    let orb_mv_uniform = warn_ok(orb_program.get_uniform_matrix4fv("MV").map_err(err_msg)).unwrap();
+    let matrices_uniform = warn_ok(shader_program.get_uniform_std140::<Matrices,2>("Matrices").map_err(err_msg)).unwrap();
+    shader_program.set_uniform_buffer(matrices_uniform,&matrices);
+    let orb_matrices_uniform = warn_ok(orb_program.get_uniform_std140("Matrices").map_err(err_msg)).unwrap();
+    orb_program.set_uniform_buffer(orb_matrices_uniform,&matrices);
 
     let mut world = World::<1,1>::new();
     world.set_block(1,1,1,STONE);
@@ -152,16 +158,15 @@ pub fn run(
         let v = glm::quat_to_mat4(&rotation) * glm::translation(&-location3);
 
         let m = model_matrix;
-        let mv = &v * m;
-        let mvp = projection_matrix * &mv;
-        shader_program.set_uniform_matrix4fv(mvp_uniform, mvp.as_slice());
+        matrices.mv = &v * m;
+        matrices.mvp = projection_matrix * &matrices.mv;
+        matrices.update();
+        // shader_program.set_uniform_matrix4fv(mvp_uniform, mvp.as_slice());
         shader_program.set_uniform_texture(texture_uniform, &texture, 0);
         model_opaque.draw_instanced_triangles(0,/*one quad=2 triangles=6 vertices*/6, model_opaque.ibo().len());
         model_transparent.draw_instanced_triangles(0,/*one quad=2 triangles=6 vertices*/6, model_transparent.ibo().len());
 
         orb_program.set_used();
-        orb_program.set_uniform_matrix4fv(orb_mvp_uniform, mvp.as_slice());
-        orb_program.set_uniform_matrix4fv(orb_mv_uniform, mv.as_slice());
         model_orbs.draw_vertices(Primitive::Points, 64);
 
         window.gl_swap_window();

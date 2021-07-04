@@ -1,7 +1,12 @@
 #version 330 core
 layout (location = 11) in uvec2 block;
 out vec2 UV;
-uniform mat4 MVP;
+
+layout (std140) uniform Matrices
+{
+    mat4 MVP;
+    mat4 MV;
+};
 
 void main()
 {

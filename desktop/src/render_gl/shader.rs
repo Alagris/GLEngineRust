@@ -4,6 +4,8 @@ use gl;
 use std;
 use std::ffi::{CStr, CString};
 use crate::render_gl::gl_error::drain_gl_errors;
+use std::marker::PhantomData;
+use crate::render_gl::uniform_buffer::{UniformBuffer, BufferUsage, BufferType, Constant, Variable, Std140, Std430};
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -27,8 +29,10 @@ pub struct UniformMatrix4fv {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct UniformBuffer {
+pub struct UniformBufferBindingPoint<B:BufferType, T, const BindingPoint:u32> {
     id: gl::types::GLuint,
+    _data_type:PhantomData<T>,
+    _buffer_type:PhantomData<B>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -163,8 +167,14 @@ impl Program {
         }
         Ok(id)
     }
-    pub fn get_uniform_buffer(&self, name: &str) -> Result<UniformBuffer, String> {
-        self.get_uniform_block(name).map(|id| UniformBuffer { id })
+    pub fn get_uniform_std430<T,const BindingPoint:u32>(&self, name: &str) -> Result<UniformBufferBindingPoint<Std430,T,BindingPoint>, String> {
+        self.get_uniform_buffer(name)
+    }
+    pub fn get_uniform_std140<T,const BindingPoint:u32>(&self, name: &str) -> Result<UniformBufferBindingPoint<Std140,T,BindingPoint>, String> {
+        self.get_uniform_buffer(name)
+    }
+    pub fn get_uniform_buffer<B:BufferType, T,const BindingPoint:u32>(&self, name: &str) -> Result<UniformBufferBindingPoint<B,T,BindingPoint>, String> {
+        self.get_uniform_block(name).map(|id| UniformBufferBindingPoint { id, _data_type: PhantomData, _buffer_type: PhantomData })
     }
     pub fn get_uniform_matrix4fv(&self, name: &str) -> Result<UniformMatrix4fv, String> {
         self.get_uniform(name).map(|id| UniformMatrix4fv { id })
@@ -195,6 +205,19 @@ impl Program {
 
     pub fn get_uniform_cube_texture(&self, name: &str) -> Result<UniformCubeTexture, String> {
         self.get_uniform(name).map(|id| UniformCubeTexture { id })
+    }
+
+    pub fn set_uniform_buffer<B:BufferType, T,U:BufferUsage,const BindingPoint:u32>(
+        &self,
+        binding_point: UniformBufferBindingPoint<B,T,BindingPoint>,
+        buffer: &UniformBuffer<B,T,U,BindingPoint>
+    ) {
+        unsafe {
+            self.gl.UniformBlockBinding(self.id, binding_point.id, BindingPoint);
+            drain_gl_errors(&self.gl);
+            self.gl.BindBufferBase(gl::UNIFORM_BUFFER, BindingPoint, buffer.ubo());
+            drain_gl_errors(&self.gl);
+        }
     }
 
     pub fn set_uniform_texture(
@@ -236,15 +259,13 @@ impl Program {
 
     pub fn set_uniform_matrix4fv(&self, uniform: UniformMatrix4fv, value: &[f32]) {
         unsafe {
-            self.gl
-                .UniformMatrix4fv(uniform.id, 1, gl::FALSE, value.as_ptr());
+            self.gl.UniformMatrix4fv(uniform.id, 1, gl::FALSE, value.as_ptr());
         }
     }
 
     pub fn set_uniform_matrix3fv(&self, uniform: UniformMatrix3fv, value: &[f32]) {
         unsafe {
-            self.gl
-                .UniformMatrix3fv(uniform.id, 1, gl::FALSE, value.as_ptr());
+            self.gl.UniformMatrix3fv(uniform.id, 1, gl::FALSE, value.as_ptr());
         }
     }
 
