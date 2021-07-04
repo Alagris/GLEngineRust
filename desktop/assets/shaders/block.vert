@@ -11,14 +11,14 @@ layout (std140) uniform Matrices
 void main()
 {
 
-    const vec3 A = vec3(0,0,0);// left bottom front
-    const vec3 B = vec3(1,0,0);// right bottom front
-    const vec3 C = vec3(1,0,1);// right bottom back
-    const vec3 D = vec3(0,0,1);// left bottom back
-    const vec3 E = vec3(0,1,0);// left top front
-    const vec3 F = vec3(1,1,0);// right top front
-    const vec3 G = vec3(1,1,1);// right top back
-    const vec3 H = vec3(0,1,1);// left top back
+    const vec3 A = vec3(0,0,0);// left bottom back
+    const vec3 B = vec3(1,0,0);// right bottom back
+    const vec3 C = vec3(1,0,1);// right bottom front
+    const vec3 D = vec3(0,0,1);// left bottom front
+    const vec3 E = vec3(0,1,0);// left top back
+    const vec3 F = vec3(1,1,0);// right top back
+    const vec3 G = vec3(1,1,1);// right top front
+    const vec3 H = vec3(0,1,1);// left top front
 
     const vec3[6*6] vertices = vec3[6*6](
     // YPlus ortientation = block's top face
@@ -29,17 +29,17 @@ void main()
     G, B, F, B, G, C,
     // XMinus ortientation = block's left face
     A, D, H, A, H, E,
-    // ZPlus ortientation = block's back face
+    // ZPlus ortientation = block's front face
     H, D, C, G, H, C,
-    // ZMinus ortientation = block's front face
+    // ZMinus ortientation = block's back face
     F, B, A, F, A, E
     );
     const float single_block_u = 1./64.; // Texture consists of 64 blocks placed in a row along x axis.
     // One block takes up 1/1024 of the space.
-    const vec2 K = vec2(single_block_u,1);// left bottom
-    const vec2 L = vec2(0,1);// right bottom
-    const vec2 M = vec2(0,0);// right top
-    const vec2 N = vec2(single_block_u,0);// left top
+    const vec2 K = vec2(0,0);// left bottom
+    const vec2 L = vec2(single_block_u,0);// right bottom
+    const vec2 M = vec2(single_block_u,1);// right top
+    const vec2 N = vec2(0,1);// left top
 
     const vec2[6*6] texture_uv = vec2[6*6](
         // YPlus ortientation = block's top face
@@ -50,9 +50,9 @@ void main()
         M, K, N, K, M, L,
         // XMinus ortientation = block's left face
         L, K, N, L, N, M,
-        // ZPlus ortientation = block's back face
-        M, L, K, N, M, K,
-        // ZMinus ortientation = block's front face
+        // ZPlus ortientation = block's front face
+        N, K, L, M, N, L,
+        // ZMinus ortientation = block's back face
         M, L, K, M, K, N
     );
     uint max_byte = uint(255);

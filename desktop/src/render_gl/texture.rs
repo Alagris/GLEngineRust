@@ -70,11 +70,7 @@ impl Tex<Texture2D> {
     pub fn new_with_filter(file: &Path,filter:Filter, gl: &gl::Gl) -> Result<Self, failure::Error> {
         let mut texture = 0;
         let img = image::open(file).map_err(err_msg)?;
-        // use show_image::{ImageView, ImageInfo, create_window};
-        // let image = ImageView::new(im, pixel_data);
-        // // Create a window with default options and display the image.
-        // let window = create_window("image", Default::default())?;
-        // window.set_image("image-001", image)?;
+        let img = img.flipv();
         let (color_scheme, data_type, internal_format):(gl::types::GLenum,gl::types::GLenum,gl::types::GLint) = match img.color(){
             ColorType::Rgb8 => (gl::RGB,gl::UNSIGNED_BYTE,gl::RGB as i32),
             ColorType::Rgba8 => (gl::RGBA,gl::UNSIGNED_BYTE,gl::RGBA as i32),
@@ -140,6 +136,7 @@ impl Tex<TextureCube> {
             Self::bind_texture(gl, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
         }
         for (i, img) in data.iter().enumerate() {
+            let img = img.flipv();
             unsafe {
                 gl.TexImage2D(
                     gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32,

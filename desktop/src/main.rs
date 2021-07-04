@@ -19,6 +19,7 @@ mod demos;
 mod render_gl;
 mod resources;
 mod scene;
+mod physics;
 
 fn main() {
     if let Err(e) = scene::run() {

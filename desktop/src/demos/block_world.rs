@@ -15,6 +15,7 @@ use crate::render_gl::buffer::{DynamicBuffer, AnyBuffer};
 use crate::render_gl::texture::Filter::Nearest;
 use crate::blocks::block_properties::{STONE, GRASS, GLASS, CRAFTING, SLAB, ICE, LEAVES, TNT};
 use crate::render_gl::uniform_buffer::UniformBuffer;
+use crate::blocks::entities::{Entities, Entity};
 
 pub fn run(
     gl: gl::Gl,
@@ -30,8 +31,10 @@ pub fn run(
         gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/block")?;
+    let mobs_program = render_gl::Program::from_res(&gl, &res, "shaders/mobs")?;
     let orb_program = render_gl::Program::from_res(&gl, &res, "shaders/orb")?;
     let texture = render_gl::texture::Texture::from_res_with_filter("img/blocks.png", &res, Nearest, &gl)?;
+    let zombie_texture = render_gl::texture::Texture::from_res_with_filter("img/mobs.jpeg", &res, Nearest,&gl)?;
 
     // set up shared state for window
     let mut viewport = render_gl::Viewport::for_window(900, 700);
@@ -59,6 +62,11 @@ pub fn run(
     shader_program.set_uniform_buffer(matrices_uniform,&matrices);
     let orb_matrices_uniform = warn_ok(orb_program.get_uniform_std140("Matrices").map_err(err_msg)).unwrap();
     orb_program.set_uniform_buffer(orb_matrices_uniform,&matrices);
+    let mobs_texture_uniform = warn_ok(mobs_program.get_uniform_texture("myTextureSampler").map_err(err_msg)).unwrap();
+    let mobs_matrices_uniform = warn_ok(mobs_program.get_uniform_std140::<Matrices,2>("Matrices").map_err(err_msg)).unwrap();
+    mobs_program.set_uniform_buffer(mobs_matrices_uniform,&matrices);
+    let mut entities = Entities::new();
+    entities.push(Entity::Zombie, &[4.,0.,0.]);
 
     let mut world = World::<1,1>::new();
     world.set_block(1,1,1,STONE);
@@ -79,6 +87,7 @@ pub fn run(
     // world.compute_faces();
     let mut model_transparent = InstancedLogicalModel::new(DynamicBuffer::new(world.get_chunk_faces(0,0).transparent_as_slice(),&gl),&gl);
     let mut model_opaque = InstancedLogicalModel::new(DynamicBuffer::new(world.get_chunk_faces(0,0).opaque_as_slice(),&gl),&gl);
+    let mut model_mobs = InstancedLogicalModel::new(DynamicBuffer::new(entities.as_slice(),&gl),&gl);
     let mut points = vec![VertexSizeAlphaClr::new((0.,0.,0.),64.,(0.,0.,0.,1.));64];
     let mut model_orbs = ArrayModel::new(DynamicBuffer::new(&points,&gl),&gl);
     let model_matrix = glm::identity::<f32, 4>();
@@ -153,7 +162,7 @@ pub fn run(
 
         // draw triangle
         color_buffer.clear(&gl);
-        shader_program.set_used();
+
         let location3 = &glm::vec4_to_vec3(&location);
         let v = glm::quat_to_mat4(&rotation) * glm::translation(&-location3);
 
@@ -161,13 +170,20 @@ pub fn run(
         matrices.mv = &v * m;
         matrices.mvp = projection_matrix * &matrices.mv;
         matrices.update();
+
+        mobs_program.set_used();
+        mobs_program.set_uniform_texture(mobs_texture_uniform, &zombie_texture, 0);
+        model_mobs.draw_instanced_triangles(0,/*1 cube=6 quads=12 triangles=36 vertices*/36, model_mobs.ibo().len());
+
         // shader_program.set_uniform_matrix4fv(mvp_uniform, mvp.as_slice());
+        shader_program.set_used();
         shader_program.set_uniform_texture(texture_uniform, &texture, 0);
         model_opaque.draw_instanced_triangles(0,/*one quad=2 triangles=6 vertices*/6, model_opaque.ibo().len());
         model_transparent.draw_instanced_triangles(0,/*one quad=2 triangles=6 vertices*/6, model_transparent.ibo().len());
 
         orb_program.set_used();
         model_orbs.draw_vertices(Primitive::Points, 64);
+
 
         window.gl_swap_window();
     }

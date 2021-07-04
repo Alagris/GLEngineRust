@@ -228,8 +228,11 @@ impl Program {
     ) {
         unsafe {
             self.gl.ActiveTexture(gl::TEXTURE0 + texture_binding_unit); // Texture unit 0
+            drain_gl_errors(&self.gl);
             texture.bind();
+            drain_gl_errors(&self.gl);
             self.gl.Uniform1i(uniform.id, texture_binding_unit as i32);
+            drain_gl_errors(&self.gl);
         }
     }
 
@@ -241,8 +244,11 @@ impl Program {
     ) {
         unsafe {
             self.gl.ActiveTexture(gl::TEXTURE0 + texture_binding_unit); // Texture unit 0
+            drain_gl_errors(&self.gl);
             texture.bind();
+            drain_gl_errors(&self.gl);
             self.gl.Uniform1i(uniform.id, texture_binding_unit as i32);
+            drain_gl_errors(&self.gl);
         }
     }
 

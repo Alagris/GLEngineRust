@@ -12,6 +12,7 @@ Location 6 is for extra scalar attributes (like size, length, temperature, light
 Locations above 10 (inclusive) are reserved for shaders with instancing (glDrawArraysInstanced).
 Location 10 is meant to hold vec3 vector with instance position.
 Location 11 is meant to hold uint with some integer meta-data of each instance.
+Location 12 is meant to hold quat with instance rotation.
 */
 pub trait VertexAttribPointers {
     fn vertex_attrib_pointers(gl: &::gl::Gl);
@@ -424,6 +425,25 @@ pub struct InstanceUInt {
 impl InstanceUInt {
     pub fn new(uint: u32) -> Self {
         Self { uint }
+    }
+}
+
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+#[derive(VertexAttribPointers)]
+pub struct InstancePosId {
+    #[location = 10]
+    #[divisor = 1]
+    pos: f32_f32_f32, //position
+    #[location = 11]
+    #[divisor = 1]
+    id: u32,
+}
+
+impl InstancePosId {
+    pub fn new(pos: impl Into<f32_f32_f32>, id:u32) -> Self {
+        Self { pos: pos.into(), id }
     }
 }
 

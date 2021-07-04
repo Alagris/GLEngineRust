@@ -13,7 +13,6 @@ pub mod instanced_model;
 pub mod logical_model;
 pub mod model;
 pub mod model_data;
-pub mod physics_model;
 pub mod shapes;
 pub mod terrain;
 pub mod texture;
