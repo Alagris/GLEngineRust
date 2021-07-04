@@ -1,7 +1,9 @@
-use crate::render_gl::data::u8_u8_u8_u8;
+use crate::render_gl::data::{u8_u8_u8_u8, u8_u8_u8_u8_u32};
 use crate::render_gl::data::VertexAttribPointers;
 use crate::render_gl::data::VertexAttrib;
 use crate::render_gl::util::init_array;
+use crate::blocks::block_properties::BLOCKS;
+use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 #[repr(C, packed)]
@@ -15,7 +17,11 @@ pub struct Block {
 pub const CHUNK_WIDTH: usize = 16;
 pub const CHUNK_DEPTH: usize = 16;
 pub const CHUNK_HEIGHT: usize = 256;
-
+impl Display for Block{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}",self.name())
+    }
+}
 impl Block {
     pub fn air() -> Self {
         Self { idx: 0 }
@@ -27,11 +33,19 @@ impl Block {
         (self.idx - 10).max(0)
     }
     pub fn is_transparent(&self) -> bool {
-        self.idx < 10
+        self.idx < 2
     }
     pub fn is_air(&self) -> bool {
         self.idx == 0
     }
+    pub fn texture_id(&self, ort:FaceOrientation)->u32{
+        BLOCKS[self.idx as usize].get_texture_id(ort)
+    }
+    pub fn name(&self)->&'static str{
+        BLOCKS[self.idx as usize].name()
+    }
+    pub fn show_neighboring_faces(&self)->bool{ self.is_transparent()}
+    pub fn show_my_faces(&self)->bool{!self.is_air()}
 }
 
 #[derive(FromPrimitive, Copy, Clone, Eq, PartialEq, Debug)]
@@ -45,6 +59,9 @@ pub enum FaceOrientation {
 }
 
 impl FaceOrientation {
+    pub fn is_side(&self) -> bool{
+        (self.clone() as u8) > 1
+    }
     pub fn opposite(&self) -> FaceOrientation {
         assert_eq!(std::mem::size_of::<Self>(), std::mem::size_of::<u8>());
         let m = self.clone() as u8;
@@ -64,11 +81,11 @@ impl FaceOrientation {
 pub struct Face {
     #[location = 11]
     #[divisor = 1]
-    coords: u8_u8_u8_u8,
+    coords: u8_u8_u8_u8_u32,
 }
 
 impl Face {
-    pub fn as_u32(&self) -> u32 {
+    pub fn as_u32(&self) -> (u32,u32) {
         self.coords.as_u32().clone()
     }
     pub fn x(&self) -> u8 {
@@ -83,6 +100,9 @@ impl Face {
     pub fn orientation(&self) -> u8 {
         self.coords.d3
     }
+    pub fn texture_id(&self) -> u32 {
+        self.coords.d4
+    }
     pub fn block_x(&self) -> usize {
         self.coords.d0 as usize
     }
@@ -95,8 +115,13 @@ impl Face {
     pub fn block_orientation(&self) -> FaceOrientation {
         num_traits::FromPrimitive::from_u8(self.coords.d3).unwrap()
     }
-
-    pub fn from_coords(x: usize, y: usize, z: usize, orientation: FaceOrientation) -> Self {
+    pub fn coords(&self) -> u32 {
+        self.as_u32().0
+    }
+    pub fn encode_coords(x: usize, y: usize, z: usize, orientation: FaceOrientation) -> u32 {
+        u8_u8_u8_u8::from((x as u8, y as u8, z as u8, orientation as u8)).as_u32().clone()
+    }
+    pub fn from_coords(x: usize, y: usize, z: usize, orientation: FaceOrientation, texture_id:u32) -> Self {
         assert!(x < CHUNK_WIDTH);
         assert!(y < CHUNK_HEIGHT);
         assert!(z < CHUNK_DEPTH);
@@ -104,7 +129,7 @@ impl Face {
             std::mem::size_of::<FaceOrientation>(),
             std::mem::size_of::<u8>()
         );
-        Self { coords: u8_u8_u8_u8::from((x as u8, y as u8, z as u8, orientation as u8)) }
+        Self { coords: u8_u8_u8_u8_u32::from((x as u8, y as u8, z as u8, orientation as u8, texture_id)) }
     }
 }
 
@@ -123,8 +148,8 @@ impl ChunkFaces {
     fn new() -> Self {
         Self { faces: Vec::new() }
     }
-    fn push(&mut self, x: usize, y: usize, z: usize, ort: FaceOrientation) {
-        let face = Face::from_coords(x, y, z, ort);
+    fn push(&mut self, x: usize, y: usize, z: usize, ort: FaceOrientation, texture_id:u32) {
+        let face = Face::from_coords(x, y, z, ort, texture_id);
         assert!(!self.faces.contains(&face));
         self.faces.push(face)
     }
@@ -140,20 +165,39 @@ impl ChunkFaces {
             }
         }
     }
+    fn update_textures(&mut self, x: usize, y: usize, z: usize, new_block:&Block) {
+        let mut i = 0;
+        let (x, y, z) = ((x % CHUNK_WIDTH) as u8, y as u8, (z % CHUNK_DEPTH) as u8);
+        while i < self.faces.len() {
+            let face = self.faces[i];
+            if face.x() == x && face.y() == y && face.z() == z {
+                self.update_texture(i, new_block);
+            } else {
+                i += 1;
+            }
+        }
+        assert!(false, "Failed to update texture at {},{},{} to new block id {}",x,y,z, new_block)
+    }
     fn remove_face(&mut self, x: usize, y: usize, z: usize, ort: FaceOrientation) {
-        let face = Face::from_coords(x, y, z, ort).as_u32().clone();
+        let face = Face::encode_coords(x, y, z, ort);
         self.remove(
             self.faces
                 .iter()
-                .position(|x| x.as_u32().clone() == face)
+                .position(|x| x.coords() == face)
                 .unwrap(),
         )
+    }
+    fn update_texture(&mut self, idx: usize, new_block:&Block) {
+        let face = &mut self.faces[idx];
+        let ort = face.block_orientation();
+        face.coords.d4 = new_block.texture_id(ort);
     }
     fn remove(&mut self, idx: usize) {
         let last = self.faces.len() - 1;
         self.faces.swap(idx, last);
         self.faces.pop();
     }
+
 }
 
 #[derive(Clone)]
@@ -278,30 +322,34 @@ impl<const W: usize, const H: usize> World<W, H> {
     /**Updates block according to custom policy. Function f should return true if a block was changed and face update is necessary.
     The result of this function is the same as the output of f.*/
     pub fn update_block<F: Fn(&mut Block) -> bool>(&mut self, x: usize, y: usize, z: usize, f: F) -> bool{
-        let b = self.get_block_mut(x, y, z);
-        let was_transparent = b.is_transparent();
+        let (chunks, faces) = self.borrow_chunks_and_faces_mut();
+        let b = chunks.get_block_mut(x, y, z);
+        let was_showing_neighboring_faces = b.show_neighboring_faces();
+        let was_showing_my_faces = b.show_my_faces();
         if f(b) {
-            let is_transparent = b.is_transparent();
-            if was_transparent {
-                if !is_transparent {
-                    let (chunks, faces) = self.borrow_chunks_and_faces_mut();
-                    Self::for_each_neighbour(x, y, z, |neighbour_x, neighbour_y, neighbour_z, ort| {
-                        if chunks.get_block(neighbour_x, neighbour_y, neighbour_z).is_transparent() {
-                            faces.get_chunk_faces_mut(x, z).push(x, y, z, ort);
-                        } else {
-                            faces.get_chunk_faces_mut(neighbour_x, neighbour_y).remove_face(neighbour_x, neighbour_y, neighbour_z, ort.opposite())
-                        }
-                    });
+            let is_showing_neighboring_faces = b.show_neighboring_faces();
+            let is_showing_my_faces = b.show_my_faces();
+            if was_showing_my_faces {
+                if is_showing_my_faces {
+                    faces.get_chunk_faces_mut(x, z).update_textures(x, y, z, &b);
+                }else{
+                    faces.get_chunk_faces_mut(x, z).remove_block(x, y, z);
                 }
-            } else if is_transparent {
-                self.get_chunk_faces_mut(x, z).remove_block(x, y, z);
-                let (chunks, faces) = self.borrow_chunks_and_faces_mut();
-                Self::for_each_neighbour(x, y, z, |neighbour_x, neighbour_y, neighbour_z, ort| {
-                    if !chunks.get_block(neighbour_x, neighbour_y, neighbour_z).is_transparent() {
-                        faces.get_chunk_faces_mut(neighbour_x, neighbour_z).push(neighbour_x, neighbour_y, neighbour_z, ort.opposite());
-                    }
-                });
             }
+            let b = b.clone();//just to make borrow-checker happy
+            Self::for_each_neighbour(x, y, z, |neighbour_x, neighbour_y, neighbour_z, my_face| {
+                let neighbour = chunks.get_block(neighbour_x, neighbour_y, neighbour_z);
+                let neighbour_face = my_face.opposite();
+                if was_showing_neighboring_faces && !is_showing_neighboring_faces && neighbour.show_my_faces(){
+                    faces.get_chunk_faces_mut(neighbour_x, neighbour_y).remove_face(neighbour_x, neighbour_y, neighbour_z, neighbour_face)
+                }
+                if !was_showing_neighboring_faces && is_showing_neighboring_faces && neighbour.show_my_faces(){
+                    faces.get_chunk_faces_mut(neighbour_x, neighbour_z).push(neighbour_x, neighbour_y, neighbour_z, neighbour_face,neighbour.texture_id(neighbour_face));
+                }
+                if !was_showing_my_faces && is_showing_my_faces && neighbour.show_neighboring_faces(){
+                    faces.get_chunk_faces_mut(x, z).push(x, y, z, my_face, b.texture_id(my_face));
+                }
+            });
             true
         }else{
             false
@@ -352,10 +400,11 @@ impl<const W: usize, const H: usize> World<W, H> {
                 let faces = faces.get_chunk_faces_mut(x, z);
                 for y in 0..CHUNK_HEIGHT {
                     let block = chunk.get_block(x, y, z);
-                    if !block.is_transparent() {
+                    if block.show_my_faces() {
                         Self::for_each_neighbour(x, y, z, |neighbour_x, neighbour_y, neighbour_z, ort| {
-                            if chunks.get_block(neighbour_x, neighbour_y, neighbour_z).is_transparent() {
-                                faces.push(x, y, z, ort);
+                            let neighbour = chunks.get_block(neighbour_x, neighbour_y, neighbour_z);
+                            if neighbour.show_neighboring_faces() {
+                                faces.push(x, y, z, ort, block.texture_id(ort));
                             }
                         });
                     }

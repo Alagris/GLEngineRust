@@ -27,6 +27,11 @@ pub struct UniformMatrix4fv {
 }
 
 #[derive(Debug, Copy, Clone)]
+pub struct UniformBuffer {
+    id: gl::types::GLuint,
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct UniformMatrix3fv {
     id: gl::types::GLint,
 }
@@ -140,16 +145,27 @@ impl Program {
     fn get_uniform(&self, name: &str) -> Result<gl::types::GLint, String> {
         let id: gl::types::GLint;
         unsafe {
-            id = self
-                .gl
-                .GetUniformLocation(self.id, CString::new(name).unwrap().into_raw());
+            id = self.gl.GetUniformLocation(self.id, CString::new(name).unwrap().into_raw());
         }
         if id == -1 {
-            return Err(["uniform '", name, "' not found!"].join(""));
+            return Err(format!("uniform '{}' not found!",name));
         }
         Ok(id)
     }
 
+    fn get_uniform_block(&self, name: &str) -> Result<gl::types::GLuint, String> {
+        let id: gl::types::GLuint;
+        unsafe {
+            id = self.gl.GetUniformBlockIndex(self.id, CString::new(name).unwrap().into_raw());
+        }
+        if id == gl::INVALID_INDEX{
+            return Err(format!("uniform block '{}' not found!",name));
+        }
+        Ok(id)
+    }
+    pub fn get_uniform_buffer(&self, name: &str) -> Result<UniformBuffer, String> {
+        self.get_uniform_block(name).map(|id| UniformBuffer { id })
+    }
     pub fn get_uniform_matrix4fv(&self, name: &str) -> Result<UniformMatrix4fv, String> {
         self.get_uniform(name).map(|id| UniformMatrix4fv { id })
     }

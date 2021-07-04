@@ -1,5 +1,5 @@
 #version 330 core
-layout (location = 11) in uint block_face;
+layout (location = 11) in uvec2 block;
 out vec2 UV;
 uniform mat4 MVP;
 
@@ -29,11 +29,12 @@ void main()
     // ZMinus ortientation = block's front face
     F, B, A, F, A, E
     );
-
-    const vec2 K = vec2(0,0);// left bottom
-    const vec2 L = vec2(1,0);// right bottom
-    const vec2 M = vec2(1,1);// right top
-    const vec2 N = vec2(0,1);// left top
+    const float single_block_u = 1./64.; // Texture consists of 64 blocks placed in a row along x axis.
+    // One block takes up 1/1024 of the space.
+    const vec2 K = vec2(single_block_u,1);// left bottom
+    const vec2 L = vec2(0,1);// right bottom
+    const vec2 M = vec2(0,0);// right top
+    const vec2 N = vec2(single_block_u,0);// left top
 
     const vec2[6*6] texture_uv = vec2[6*6](
         // YPlus ortientation = block's top face
@@ -50,6 +51,7 @@ void main()
         M, L, K, M, K, N
     );
     uint max_byte = uint(255);
+    uint block_face = block.x;
     uint x = block_face & max_byte;
     uint y = (block_face>>8) & max_byte;
     uint z = (block_face>>16) & max_byte;
@@ -57,5 +59,7 @@ void main()
     vec3 block_position = vec3(float(x),float(y),float(z));
     vec3 vertex_pos = vertices[orientation*uint(6) + uint(gl_VertexID)];
     gl_Position = MVP * vec4(vertex_pos+block_position, 1.0);
-    UV = texture_uv[orientation*uint(6) + uint(gl_VertexID)];
+    uint block_texture = block.y;
+    vec2 uv = texture_uv[orientation*uint(6) + uint(gl_VertexID)];
+    UV = vec2(uv.x + float(block_texture)*single_block_u,uv.y);
 }

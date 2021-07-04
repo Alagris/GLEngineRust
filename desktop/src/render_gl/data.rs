@@ -226,6 +226,37 @@ impl From<u32> for u8_u8_u8_u8 {
 }
 
 
+#[allow(non_camel_case_types)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(C, packed)]
+pub struct u8_u8_u8_u8_u32 {
+    pub d0: u8,
+    pub d1: u8,
+    pub d2: u8,
+    pub d3: u8,
+    pub d4: u32,
+}
+
+impl u8_u8_u8_u8_u32 {
+    pub fn as_u32(&self) -> &(u32,u32) {
+        unsafe { std::mem::transmute::<&u8_u8_u8_u8_u32, &(u32,u32)>(self) }
+    }
+    pub fn new(d0: u8, d1: u8, d2: u8, d3: u8, d4:u32) -> Self {
+        Self { d0, d1, d2, d3 ,d4}
+    }
+}
+
+impl VertexAttrib for u8_u8_u8_u8_u32 {
+    const NUMBER_OF_COMPONENTS: gl::types::GLint = 2;
+    const GL_TYPE: gl::types::GLenum = gl::UNSIGNED_INT; //GLSL does not actually support bytes. u32 is the smallest data type. Hence we encode 4 bytes as one int.
+}
+
+impl From<(u8, u8, u8, u8, u32)> for u8_u8_u8_u8_u32 {
+    fn from(other: (u8, u8, u8, u8, u32)) -> Self {
+        Self::new(other.0, other.1, other.2, other.3, other.4)
+    }
+}
+
 impl VertexAttrib for u32 {
     const NUMBER_OF_COMPONENTS: gl::types::GLint = 1;
     const GL_TYPE: gl::types::GLenum = gl::UNSIGNED_INT;

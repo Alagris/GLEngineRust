@@ -214,6 +214,14 @@ impl<B, T> Buffer<B, T, BufferDynamicFixedLen> where B: BufferType {
     }
 }
 
+impl<T, U> Buffer<BufferTypeShaderStorage, T, U> where U:BufferUsage {
+    pub fn bind_to_uniform(&self, binding_block:gl::types::GLuint){
+        unsafe{
+            self.gl.BindBufferBase(Self::target(), binding_block, self.vbo)
+        }
+    }
+}
+
 impl<B, T, U> Drop for Buffer<B, T, U> where B: BufferType, U: BufferUsage {
     fn drop(&mut self) {
         unsafe {
@@ -232,6 +240,13 @@ impl BufferType for BufferTypeArray {
     const BUFFER_TYPE: gl::types::GLuint = gl::ARRAY_BUFFER;
 }
 
+
+pub struct BufferTypeShaderStorage;
+
+impl BufferType for BufferTypeShaderStorage {
+    const BUFFER_TYPE: gl::types::GLuint = gl::SHADER_STORAGE_BUFFER;
+}
+
 pub struct BufferTypeElementArray;
 
 impl BufferType for BufferTypeElementArray {
@@ -239,6 +254,7 @@ impl BufferType for BufferTypeElementArray {
 }
 
 pub type ArrayBuffer<T> = Buffer<BufferTypeArray, T, BufferStaticDraw>;
+pub type ShaderStorageBuffer<T> = Buffer<BufferTypeShaderStorage, T, BufferStaticDraw>;
 pub type DynamicBuffer<T> = Buffer<BufferTypeArray, T, BufferDynamicDraw>;
 pub type ElementArrayBuffer<T> = Buffer<BufferTypeElementArray, T, BufferStaticDraw>;
 

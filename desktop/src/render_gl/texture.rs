@@ -44,17 +44,30 @@ impl<B: TextureType> Tex<B> {
         gl.TexParameteri(B::TEXTURE_TYPE, what, value);
     }
 }
-
+#[derive(Copy, Clone,Eq, PartialEq)]
+pub enum Filter{
+    Linear=gl::LINEAR as isize, Nearest=gl::NEAREST as isize
+}
 impl Tex<Texture2D> {
     pub fn from_res(
         resource_name: &str,
         res: &Resources,
+        gl: &gl::Gl) -> Result<Self, failure::Error> {
+        Self::from_res_with_filter(resource_name,res,Filter::Linear,gl)
+    }
+    pub fn from_res_with_filter(
+        resource_name: &str,
+        res: &Resources,
+        filter:Filter,
         gl: &gl::Gl,
     ) -> Result<Self, failure::Error> {
         println!("Loading texture {}", resource_name);
-        Self::new(&res.path(resource_name), gl)
+        Self::new_with_filter(&res.path(resource_name), filter, gl)
     }
     pub fn new(file: &Path, gl: &gl::Gl) -> Result<Self, failure::Error> {
+        Self::new_with_filter(file,Filter::Linear,gl)
+    }
+    pub fn new_with_filter(file: &Path,filter:Filter, gl: &gl::Gl) -> Result<Self, failure::Error> {
         let mut texture = 0;
         let img = image::open(file).map_err(err_msg)?;
         let data = img.as_bytes();
@@ -65,8 +78,8 @@ impl Tex<Texture2D> {
             Self::tex_parameteri(gl, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); // set texture wrapping to gl::REPEAT (default wrapping method)
             Self::tex_parameteri(gl, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
             // set texture filtering parameters
-            Self::tex_parameteri(gl, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-            Self::tex_parameteri(gl, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            Self::tex_parameteri(gl, gl::TEXTURE_MIN_FILTER, filter as i32);
+            Self::tex_parameteri(gl, gl::TEXTURE_MAG_FILTER, filter as i32);
             // load image, create texture and generate mipmaps
             gl.TexImage2D(
                 gl::TEXTURE_2D,

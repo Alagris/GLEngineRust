@@ -12,6 +12,7 @@ use crate::render_gl::instanced_array_model::InstancedArrayModel;
 use crate::render_gl::array_model::ArrayModel;
 use crate::render_gl::instanced_logical_model::InstancedLogicalModel;
 use crate::render_gl::buffer::{DynamicBuffer, AnyBuffer};
+use crate::render_gl::texture::Filter::Nearest;
 
 pub fn run(
     gl: gl::Gl,
@@ -24,7 +25,7 @@ pub fn run(
         gl.Enable(gl::CULL_FACE);
     }
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/block")?;
-    let texture = render_gl::texture::Texture::from_res("img/bricks2.jpg", &res, &gl)?;
+    let texture = render_gl::texture::Texture::from_res_with_filter("img/blocks.jpeg", &res, Nearest, &gl)?;
 
     // set up shared state for window
     let mut viewport = render_gl::Viewport::for_window(900, 700);
@@ -46,21 +47,23 @@ pub fn run(
     let texture_uniform = warn_ok(shader_program.get_uniform_texture("myTextureSampler").map_err(err_msg));
     let mvp_uniform = warn_ok(shader_program.get_uniform_matrix4fv("MVP").map_err(err_msg));
     let mut world = World::<1,1>::new();
-    world.set_block(1,1,1,Block::new(12));
-    world.set_block(1,2,1,Block::new(12));
-    world.set_block(1,1,2,Block::new(12));
-    world.set_block(15,0,15,Block::new(12));
-    world.set_block(14,0,15,Block::new(12));
-    world.set_block(13,0,15,Block::new(12));
-    world.set_block(2,0,0,Block::new(12));
-    world.set_block(3,0,0,Block::new(12));
-    world.set_block(4,0,0,Block::new(12));
+    world.set_block(1,1,1,Block::new(2));
+    world.set_block(1,2,1,Block::new(2));
+    world.set_block(1,1,2,Block::new(2));
+    world.set_block(15,0,15,Block::new(3));
+    world.set_block(14,0,15,Block::new(3));
+    world.set_block(13,0,15,Block::new(3));
+    world.set_block(2,0,0,Block::new(4));
+    world.set_block(3,0,0,Block::new(4));
+    world.set_block(4,0,0,Block::new(4));
     world.set_block(3,0,0,Block::new(0));
+    world.set_block(3,1,3,Block::new(8));
     // world.compute_faces();
     let mut model = InstancedLogicalModel::new(DynamicBuffer::new(world.get_chunk_faces(0,0).as_slice(),&gl),&gl);
     let model_matrix = glm::identity::<f32, 4>();
     let mut rotation = glm::quat_identity();
     let mut location = glm::vec4(0f32, 2f32, 2f32, 0f32);
+    let mut block_in_hand = 2u32;
     let movement_speed = 0.001f32;
     let player_reach = 3f32;
     let rotation_speed = 1f32;
@@ -117,7 +120,7 @@ pub fn run(
             if input.has_mouse_left_click() {
                 world.ray_cast_remove_block(location.as_slice(), ray_trace_vector.as_slice());
             }else{
-                world.ray_cast_place_block(location.as_slice(), ray_trace_vector.as_slice(), Block::new(12));
+                world.ray_cast_place_block(location.as_slice(), ray_trace_vector.as_slice(), Block::new(block_in_hand));
             }
             model.ibo_mut().update(world.get_chunk_faces(0,0).as_slice())
         }
