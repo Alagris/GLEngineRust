@@ -4,5 +4,5 @@ in vec2 UV;
 uniform sampler2D myTextureSampler;
 void main()
 {
-    FragColor = texture( myTextureSampler, UV ).rgba;
+    FragColor = texture( myTextureSampler, UV );
 }

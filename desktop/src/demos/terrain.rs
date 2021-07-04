@@ -10,6 +10,7 @@ use failure::err_msg;
 use sdl2::video::Window;
 use sdl2::{Sdl, TimerSubsystem};
 use crate::render_gl::buffer::{BufferStaticDraw, BufferDynamicFixedLen};
+use crate::render_gl::array_model::Primitive;
 
 pub fn run(
     gl: gl::Gl,
@@ -216,7 +217,7 @@ pub fn run(
                 (projection_matrix * &glm::mat3_to_mat4(&glm::mat4_to_mat3(&v))).as_slice(),
             )
         });
-        model_cube.draw_triangles();
+        model_cube.draw(Primitive::Triangles);
         unsafe {
             gl.DepthMask(gl::TRUE);
         }
@@ -238,7 +239,7 @@ pub fn run(
         texture_depth_uniform.map(|u| shader_program.set_uniform_texture(u, &texture_depth, 2));
         mv3x3_uniform
             .map(|u| shader_program.set_uniform_matrix3fv(u, glm::mat4_to_mat3(&mv).as_slice()));
-        model_terrain.draw_triangles();
+        model_terrain.draw(Primitive::Triangles);
 
 
         window.gl_swap_window();

@@ -1,6 +1,6 @@
 use crate::render_gl;
 
-use crate::render_gl::data::VertexTexNorTan;
+use crate::render_gl::data::{VertexTexNorTan, f32_f32_f32, VertexAlphaClr, VertexSizeAlphaClr};
 use crate::render_gl::model::Model;
 use crate::resources::Resources;
 use failure::err_msg;
@@ -9,10 +9,11 @@ use sdl2::{Sdl, TimerSubsystem};
 use crate::blocks::world::{World, WorldFaces, WorldChunks, Block};
 use crate::render_gl::instanced_model::InstancedModel;
 use crate::render_gl::instanced_array_model::InstancedArrayModel;
-use crate::render_gl::array_model::ArrayModel;
+use crate::render_gl::array_model::{ArrayModel, Primitive};
 use crate::render_gl::instanced_logical_model::InstancedLogicalModel;
 use crate::render_gl::buffer::{DynamicBuffer, AnyBuffer};
 use crate::render_gl::texture::Filter::Nearest;
+use crate::blocks::block_properties::{STONE, GRASS, GLASS, CRAFTING, SLAB, ICE, LEAVES, TNT};
 
 pub fn run(
     gl: gl::Gl,
@@ -23,9 +24,13 @@ pub fn run(
 ) -> Result<(), failure::Error> {
     unsafe{
         gl.Enable(gl::CULL_FACE);
+        gl.Enable(gl::BLEND);
+        gl.Enable(gl::PROGRAM_POINT_SIZE);
+        gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/block")?;
-    let texture = render_gl::texture::Texture::from_res_with_filter("img/blocks.jpeg", &res, Nearest, &gl)?;
+    let orb_program = render_gl::Program::from_res(&gl, &res, "shaders/orb")?;
+    let texture = render_gl::texture::Texture::from_res_with_filter("img/blocks.png", &res, Nearest, &gl)?;
 
     // set up shared state for window
     let mut viewport = render_gl::Viewport::for_window(900, 700);
@@ -44,22 +49,32 @@ pub fn run(
         }
     }
 
-    let texture_uniform = warn_ok(shader_program.get_uniform_texture("myTextureSampler").map_err(err_msg));
-    let mvp_uniform = warn_ok(shader_program.get_uniform_matrix4fv("MVP").map_err(err_msg));
+    let texture_uniform = warn_ok(shader_program.get_uniform_texture("myTextureSampler").map_err(err_msg)).unwrap();
+    let mvp_uniform = warn_ok(shader_program.get_uniform_matrix4fv("MVP").map_err(err_msg)).unwrap();
+    let orb_mvp_uniform = warn_ok(orb_program.get_uniform_matrix4fv("MVP").map_err(err_msg)).unwrap();
+    let orb_mv_uniform = warn_ok(orb_program.get_uniform_matrix4fv("MV").map_err(err_msg)).unwrap();
+
     let mut world = World::<1,1>::new();
-    world.set_block(1,1,1,Block::new(2));
-    world.set_block(1,2,1,Block::new(2));
-    world.set_block(1,1,2,Block::new(2));
-    world.set_block(15,0,15,Block::new(3));
-    world.set_block(14,0,15,Block::new(3));
-    world.set_block(13,0,15,Block::new(3));
-    world.set_block(2,0,0,Block::new(4));
-    world.set_block(3,0,0,Block::new(4));
-    world.set_block(4,0,0,Block::new(4));
-    world.set_block(3,0,0,Block::new(0));
-    world.set_block(3,1,3,Block::new(8));
+    world.set_block(1,1,1,STONE);
+    world.set_block(1,2,1,STONE);
+    world.set_block(1,1,2,STONE);
+    world.set_block(15,0,15,GRASS);
+    world.set_block(14,0,15,GRASS);
+    world.set_block(13,0,15,GRASS);
+    world.set_block(2,0,0, SLAB);
+    world.set_block(3,0,0,ICE);
+    world.set_block(4,0,0,LEAVES);
+    world.set_block(3,0,0,TNT);
+    world.set_block(3,1,3,CRAFTING);
+    world.set_block(3,2,3,GLASS);
+    world.set_block(3,3,3,GLASS);
+    world.set_block(3,2,4,GLASS);
+    world.set_block(3,3,4,GLASS);
     // world.compute_faces();
-    let mut model = InstancedLogicalModel::new(DynamicBuffer::new(world.get_chunk_faces(0,0).as_slice(),&gl),&gl);
+    let mut model_transparent = InstancedLogicalModel::new(DynamicBuffer::new(world.get_chunk_faces(0,0).transparent_as_slice(),&gl),&gl);
+    let mut model_opaque = InstancedLogicalModel::new(DynamicBuffer::new(world.get_chunk_faces(0,0).opaque_as_slice(),&gl),&gl);
+    let mut points = vec![VertexSizeAlphaClr::new((0.,0.,0.),64.,(0.,0.,0.,1.));64];
+    let mut model_orbs = ArrayModel::new(DynamicBuffer::new(&points,&gl),&gl);
     let model_matrix = glm::identity::<f32, 4>();
     let mut rotation = glm::quat_identity();
     let mut location = glm::vec4(0f32, 2f32, 2f32, 0f32);
@@ -110,6 +125,10 @@ pub fn run(
                 20f32,
             );
         }
+        if input.number() > -1{
+            block_in_hand = (input.number()+1) as u32
+        }
+
         let movement_vector = input.get_direction_unit_vector() * movement_speed * fps_counter.delta_f32();
         let inverse_rotation = glm::quat_inverse(&rotation);
         let movement_vector = glm::quat_rotate_vec(&inverse_rotation, &movement_vector);
@@ -122,7 +141,8 @@ pub fn run(
             }else{
                 world.ray_cast_place_block(location.as_slice(), ray_trace_vector.as_slice(), Block::new(block_in_hand));
             }
-            model.ibo_mut().update(world.get_chunk_faces(0,0).as_slice())
+            model_transparent.ibo_mut().update(world.get_chunk_faces(0,0).transparent_as_slice());
+            model_opaque.ibo_mut().update(world.get_chunk_faces(0,0).opaque_as_slice())
         }
 
         // draw triangle
@@ -134,10 +154,15 @@ pub fn run(
         let m = model_matrix;
         let mv = &v * m;
         let mvp = projection_matrix * &mv;
-        mvp_uniform.map(|u| shader_program.set_uniform_matrix4fv(u, mvp.as_slice()));
-        texture_uniform.map(|u| shader_program.set_uniform_texture(u, &texture, 0));
-        model.draw_instanced_triangles(0,/*one quad=2 triangles=6 vertices*/6, model.ibo().len());
+        shader_program.set_uniform_matrix4fv(mvp_uniform, mvp.as_slice());
+        shader_program.set_uniform_texture(texture_uniform, &texture, 0);
+        model_opaque.draw_instanced_triangles(0,/*one quad=2 triangles=6 vertices*/6, model_opaque.ibo().len());
+        model_transparent.draw_instanced_triangles(0,/*one quad=2 triangles=6 vertices*/6, model_transparent.ibo().len());
 
+        orb_program.set_used();
+        orb_program.set_uniform_matrix4fv(orb_mvp_uniform, mvp.as_slice());
+        orb_program.set_uniform_matrix4fv(orb_mv_uniform, mv.as_slice());
+        model_orbs.draw_vertices(Primitive::Points, 64);
 
         window.gl_swap_window();
     }

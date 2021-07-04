@@ -7,6 +7,7 @@ use failure::err_msg;
 use sdl2::video::Window;
 use sdl2::{Sdl, TimerSubsystem};
 use crate::render_gl::buffer::BufferStaticDraw;
+use crate::render_gl::array_model::Primitive;
 
 pub fn run(
     gl: gl::Gl,
@@ -203,11 +204,11 @@ pub fn run(
         light_color_uniform
             .map(|u| shader_program.set_uniform_vec4fv(u, &[1f32, 1f32, 1f32, light_strength]));
         texture_uniform.map(|u| shader_program.set_uniform_texture(u, &texture, 0));
-        model_susanne.draw_triangles();
+        model_susanne.draw(Primitive::Triangles);
 
         debug_shader_program.set_used();
         debug_mvp_uniform.map(|u| debug_shader_program.set_uniform_matrix4fv(u, mvp.as_slice()));
-        model_susanne.draw_triangles();
+        model_susanne.draw(Primitive::Triangles);
 
         let m = model_matrix;
         let mv = v * m;
@@ -231,7 +232,7 @@ pub fn run(
         mv3x3_parallax_uniform.map(|u| {
             normal_mapping_program.set_uniform_matrix3fv(u, glm::mat4_to_mat3(&mv).as_slice())
         });
-        model.draw_triangles();
+        model.draw(Primitive::Triangles);
 
         window.gl_swap_window();
     }

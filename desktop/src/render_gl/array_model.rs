@@ -5,6 +5,19 @@ use gl;
 
 use crate::render_gl::gl_error::drain_gl_errors;
 
+pub enum Primitive{
+    Points = gl::POINTS as isize,
+    Lines = gl::LINES as isize,
+    Triangles = gl::TRIANGLES as isize,
+    LineStrip = gl::LINE_STRIP as isize,
+}
+
+impl Primitive{
+    pub fn gl_enum(self)->gl::types::GLenum{
+        self as gl::types::GLenum
+    }
+}
+
 pub struct ArrayModel<T: VertexAttribPointers, U:BufferUsage> {
     vbo: Buffer<BufferTypeArray,T,U>,
     vao: VertexArray,
@@ -48,23 +61,16 @@ impl<T: VertexAttribPointers, U:BufferUsage> ArrayModel<T,U> {
     pub fn len_vertices(&self) -> usize {
         self.vbo.len()
     }
-    fn draw(&self, primitive: gl::types::GLenum) {
-        let vertices = self.len_vertices() as i32;
+    pub fn draw_vertices(&self, primitive: Primitive, vertices:i32) {
         unsafe {
             self.bind();
-            self.gl.DrawArrays(primitive, 0, vertices);
+            self.gl.DrawArrays(primitive.gl_enum(), 0, vertices);
             self.unbind();
             drain_gl_errors(self.gl());
         }
     }
-    pub fn draw_triangles(&self) {
-        self.draw(gl::TRIANGLES);
-    }
-
-    pub fn draw_lines(&self) {
-        self.draw(gl::LINES);
-    }
-    pub fn draw_line_strip(&self) {
-        self.draw(gl::LINE_STRIP);
+    pub fn draw(&self, primitive: Primitive) {
+        let vertices = self.len_vertices() as i32;
+        self.draw_vertices(primitive,vertices)
     }
 }

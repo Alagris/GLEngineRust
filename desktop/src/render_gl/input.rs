@@ -27,11 +27,17 @@ pub struct Input {
     q: bool,
     e: bool,
     r: bool,
+    no0: bool,
     no1: bool,
     no2: bool,
     no3: bool,
     no4: bool,
     no5: bool,
+    no6: bool,
+    no7: bool,
+    no8: bool,
+    no9: bool,
+    number: i32,
 }
 
 impl Input {
@@ -61,11 +67,17 @@ impl Input {
             q: false,
             e: false,
             r: false,
+            no0: false,
             no1: false,
             no2: false,
             no3: false,
             no4: false,
             no5: false,
+            no6: false,
+            no7: false,
+            no8: false,
+            no9: false,
+            number: 0
         }
     }
     pub fn poll(&mut self) {
@@ -73,8 +85,8 @@ impl Input {
         self.has_mouse_move = false;
         self.has_mouse_left_click = false;
         self.has_mouse_right_click = false;
+        self.number = -1;
         for event in self.event_pump.poll_iter() {
-            println!("event {:?} ",event);
             match event {
                 sdl2::event::Event::Quit { .. } => self.quit = true,
                 sdl2::event::Event::Window {
@@ -88,20 +100,45 @@ impl Input {
                 sdl2::event::Event::KeyDown { keycode, .. } => {
                     if let Some(k) = keycode {
                         match k {
+                            sdl2::keyboard::Keycode::Num0 => {
+                                self.no0 = true;
+                                self.number = 0;
+                            }
                             sdl2::keyboard::Keycode::Num1 => {
                                 self.no1 = true;
+                                self.number = 1;
                             }
                             sdl2::keyboard::Keycode::Num2 => {
                                 self.no2 = true;
+                                self.number = 2;
                             }
                             sdl2::keyboard::Keycode::Num3 => {
                                 self.no3 = true;
+                                self.number = 3;
                             }
                             sdl2::keyboard::Keycode::Num4 => {
                                 self.no4 = true;
+                                self.number = 4;
                             }
                             sdl2::keyboard::Keycode::Num5 => {
                                 self.no5 = true;
+                                self.number = 5;
+                            }
+                            sdl2::keyboard::Keycode::Num6 => {
+                                self.no6 = true;
+                                self.number = 6;
+                            }
+                            sdl2::keyboard::Keycode::Num7 => {
+                                self.no7 = true;
+                                self.number = 7;
+                            }
+                            sdl2::keyboard::Keycode::Num8 => {
+                                self.no8 = true;
+                                self.number = 8;
+                            }
+                            sdl2::keyboard::Keycode::Num9 => {
+                                self.no9 = true;
+                                self.number = 9;
                             }
                             sdl2::keyboard::Keycode::R => {
                                 self.r = true;
@@ -140,6 +177,9 @@ impl Input {
                 sdl2::event::Event::KeyUp { keycode, .. } => {
                     if let Some(k) = keycode {
                         match k {
+                            sdl2::keyboard::Keycode::Num0 => {
+                                self.no0 = false;
+                            }
                             sdl2::keyboard::Keycode::Num1 => {
                                 self.no1 = false;
                             }
@@ -154,6 +194,18 @@ impl Input {
                             }
                             sdl2::keyboard::Keycode::Num5 => {
                                 self.no5 = false;
+                            }
+                            sdl2::keyboard::Keycode::Num6 => {
+                                self.no6 = false;
+                            }
+                            sdl2::keyboard::Keycode::Num7 => {
+                                self.no7 = false;
+                            }
+                            sdl2::keyboard::Keycode::Num8 => {
+                                self.no8 = false;
+                            }
+                            sdl2::keyboard::Keycode::Num9 => {
+                                self.no9 = false;
                             }
                             sdl2::keyboard::Keycode::R => {
                                 self.r = false;
@@ -319,5 +371,20 @@ impl Input {
     }
     pub fn is_5(&self) -> bool {
         self.no5
+    }
+    pub fn is_6(&self) -> bool {
+        self.no6
+    }
+    pub fn is_7(&self) -> bool {
+        self.no7
+    }
+    pub fn is_8(&self) -> bool {
+        self.no8
+    }
+    pub fn is_9(&self) -> bool {
+        self.no9
+    }
+    pub fn number(&self) -> i32 {
+        self.number
     }
 }

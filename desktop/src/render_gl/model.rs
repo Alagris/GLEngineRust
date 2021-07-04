@@ -16,6 +16,7 @@ use crate::render_gl::gl_error::drain_gl_errors;
 use crate::render_gl::util::type_name;
 use std::fmt::Debug;
 use std::hash::Hash;
+use crate::render_gl::array_model::Primitive;
 
 pub struct Model<T: VertexAttribPointers, TU:BufferUsage> {
     vbo: Buffer<BufferTypeArray,T,TU>,
@@ -73,25 +74,14 @@ impl<T: VertexAttribPointers, TU:BufferUsage> Model<T,TU> {
     pub fn len_indices(&self) -> usize {
         self.ebo.len()
     }
-    fn draw(&self, primitive: gl::types::GLenum) {
+    pub fn draw(&self, primitive: Primitive) {
         let indices = self.len_indices() as i32;
         unsafe {
             self.bind();
-            self.gl
-                .DrawElements(primitive, indices, gl::UNSIGNED_INT, ptr::null());
+            self.gl.DrawElements(primitive.gl_enum(), indices, gl::UNSIGNED_INT, ptr::null());
             self.unbind();
             drain_gl_errors(self.gl());
         }
-    }
-    pub fn draw_triangles(&self) {
-        self.draw(gl::TRIANGLES);
-    }
-
-    pub fn draw_lines(&self) {
-        self.draw(gl::LINES);
-    }
-    pub fn draw_line_strip(&self) {
-        self.draw(gl::LINE_STRIP);
     }
 }
 

@@ -8,6 +8,7 @@ Location 1 is meant to hold vec3 with RGB color.
 Location 2 is meant to hold vec2 with texture UV coordinates.
 Location 3 is meant to hold vec3 with normal vectors.
 Location 4 and 5 is meant to hold vec3 with precomputed tangent and bitangent vectors.
+Location 6 is for extra scalar attributes (like size, length, temperature, light intensity etc)
 Locations above 10 (inclusive) are reserved for shaders with instancing (glDrawArraysInstanced).
 Location 10 is meant to hold vec3 vector with instance position.
 Location 11 is meant to hold uint with some integer meta-data of each instance.
@@ -86,6 +87,52 @@ impl From<(f32, f32, f32)> for f32_f32_f32 {
 impl From<&[f32; 3]> for f32_f32_f32 {
     fn from(other: &[f32; 3]) -> Self {
         f32_f32_f32::new(other[0], other[1], other[2])
+    }
+}
+
+
+#[allow(non_camel_case_types)]
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+pub struct f32_f32_f32_f32 {
+    pub d0: f32,
+    pub d1: f32,
+    pub d2: f32,
+    pub d3: f32,
+}
+
+impl f32_f32_f32_f32 {
+    pub fn new(d0: f32, d1: f32, d2: f32,d3: f32) -> Self {
+        Self { d0, d1, d2 , d3}
+    }
+    pub fn x(&self) -> f32 {
+        self.d0
+    }
+    pub fn y(&self) -> f32 {
+        self.d1
+    }
+    pub fn z(&self) -> f32 {
+        self.d2
+    }
+    pub fn w(&self) -> f32 {
+        self.d3
+    }
+}
+
+impl VertexAttrib for f32_f32_f32_f32 {
+    const NUMBER_OF_COMPONENTS: gl::types::GLint = 4;
+    const GL_TYPE: gl::types::GLenum = gl::FLOAT;
+}
+
+impl From<(f32, f32, f32, f32)> for f32_f32_f32_f32 {
+    fn from(other: (f32, f32, f32, f32)) -> Self {
+        f32_f32_f32_f32::new(other.0, other.1, other.2, other.3)
+    }
+}
+
+impl From<&[f32; 4]> for f32_f32_f32_f32 {
+    fn from(other: &[f32; 4]) -> Self {
+        f32_f32_f32_f32::new(other[0], other[1], other[2], other[4])
     }
 }
 
@@ -262,11 +309,16 @@ impl VertexAttrib for u32 {
     const GL_TYPE: gl::types::GLenum = gl::UNSIGNED_INT;
 }
 
+impl VertexAttrib for f32 {
+    const NUMBER_OF_COMPONENTS: gl::types::GLint = 1;
+    const GL_TYPE: gl::types::GLenum = gl::FLOAT;
+}
+
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 #[derive(VertexAttribPointers)]
-pub struct Vertex {
+pub struct VertexClr {
     #[location = 0]
     pos: f32_f32_f32,
     //position
@@ -274,10 +326,55 @@ pub struct Vertex {
     clr: f32_f32_f32, //color
 }
 
-impl Vertex {
+impl VertexClr {
     pub fn new(pos: impl Into<f32_f32_f32>, clr: impl Into<f32_f32_f32>) -> Self {
         Self {
             pos: pos.into(),
+            clr: clr.into(),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+#[derive(VertexAttribPointers)]
+pub struct VertexAlphaClr {
+    #[location = 0]
+    pos: f32_f32_f32,
+    //position
+    #[location = 1]
+    clr: f32_f32_f32_f32, //color
+}
+
+impl VertexAlphaClr {
+    pub fn new(pos: impl Into<f32_f32_f32>, clr: impl Into<f32_f32_f32_f32>) -> Self {
+        Self {
+            pos: pos.into(),
+            clr: clr.into(),
+        }
+    }
+}
+
+
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+#[derive(VertexAttribPointers)]
+pub struct VertexSizeAlphaClr {
+    #[location = 0]
+    pos: f32_f32_f32,
+    #[location = 6]
+    size:f32,
+    //position
+    #[location = 1]
+    clr: f32_f32_f32_f32, //color
+}
+
+impl VertexSizeAlphaClr {
+    pub fn new(pos: impl Into<f32_f32_f32>, size:f32, clr: impl Into<f32_f32_f32_f32>) -> Self {
+        Self {
+            pos: pos.into(),
+            size,
             clr: clr.into(),
         }
     }

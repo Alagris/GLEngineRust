@@ -7,7 +7,7 @@ use gl;
 use crate::render_gl::gl_error::drain_gl_errors;
 use crate::render_gl::model::Model;
 use std::ops::{Deref, DerefMut};
-use crate::render_gl::array_model::ArrayModel;
+use crate::render_gl::array_model::{ArrayModel, Primitive};
 
 pub struct InstancedArrayModel<T: VertexAttribPointers, I: VertexAttribPointers,TU:BufferUsage,IU:BufferUsage> {
     ibo: Buffer<BufferTypeArray,I,IU>, //instance buffer
@@ -46,12 +46,12 @@ impl<T: VertexAttribPointers, I: VertexAttribPointers,TU:BufferUsage,IU:BufferUs
         Self { ibo, model }
     }
 
-    fn draw_instanced(&self, primitive: gl::types::GLenum, instance_count: usize) {
+    pub fn draw_instanced(&self, primitive: Primitive, instance_count: usize) {
         let vertices = self.len_vertices();
         unsafe {
             self.bind();
             self.model.gl().DrawArraysInstanced(
-                primitive,
+                primitive.gl_enum(),
                 0,
                 vertices as gl::types::GLsizei,
                 instance_count as gl::types::GLsizei,
@@ -59,15 +59,5 @@ impl<T: VertexAttribPointers, I: VertexAttribPointers,TU:BufferUsage,IU:BufferUs
             drain_gl_errors(self.model.gl());
             self.unbind();
         }
-    }
-    pub fn draw_instanced_triangles(&self, instance_count: usize) {
-        self.draw_instanced(gl::TRIANGLES, instance_count);
-    }
-
-    pub fn draw_instanced_lines(&self, instance_count: usize) {
-        self.draw_instanced(gl::LINES, instance_count);
-    }
-    pub fn draw_instanced_line_strip(&self, instance_count: usize) {
-        self.draw_instanced(gl::LINE_STRIP, instance_count);
     }
 }
