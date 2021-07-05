@@ -1,5 +1,6 @@
 #version 330 core
-layout (location = 11) in uvec2 block;
+layout (location = 11) in uvec4 coords;
+layout (location = 13) in uint tex_id;
 out vec2 UV;
 
 layout (std140) uniform Matrices
@@ -55,16 +56,13 @@ void main()
         // ZMinus ortientation = block's back face
         M, L, K, M, K, N
     );
-    uint max_byte = uint(255);
-    uint block_face = block.x;
-    uint x = block_face & max_byte;
-    uint y = (block_face>>8) & max_byte;
-    uint z = (block_face>>16) & max_byte;
-    uint orientation = block_face>>24;
+    uint x = coords.x;
+    uint y = coords.y;
+    uint z = coords.z;
+    uint orientation = coords.w;
     vec3 block_position = vec3(float(x),float(y),float(z));
     vec3 vertex_pos = vertices[orientation*uint(6) + uint(gl_VertexID)];
     gl_Position = MVP * vec4(vertex_pos+block_position, 1.0);
-    uint block_texture = block.y;
     vec2 uv = texture_uv[orientation*uint(6) + uint(gl_VertexID)];
-    UV = vec2(uv.x + float(block_texture)*single_block_u,uv.y);
+    UV = vec2(uv.x + float(tex_id)*single_block_u,uv.y);
 }

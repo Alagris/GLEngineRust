@@ -15,7 +15,7 @@ use crate::render_gl::buffer::{DynamicBuffer, AnyBuffer};
 use crate::render_gl::texture::Filter::Nearest;
 use crate::blocks::block_properties::{STONE, GRASS, GLASS, CRAFTING, SLAB, ICE, LEAVES, TNT};
 use crate::render_gl::uniform_buffer::UniformBuffer;
-use crate::blocks::entities::{Entities, Entity};
+use crate::blocks::entities::{Entities, Entity, ZombieVariant};
 
 pub fn run(
     gl: gl::Gl,
@@ -66,7 +66,7 @@ pub fn run(
     let mobs_matrices_uniform = warn_ok(mobs_program.get_uniform_std140::<Matrices,2>("Matrices").map_err(err_msg)).unwrap();
     mobs_program.set_uniform_buffer(mobs_matrices_uniform,&matrices);
     let mut entities = Entities::new();
-    entities.push(Entity::Zombie, &[4.,0.,0.]);
+    entities.push(Entity::Zombie(ZombieVariant::Zombie), &[4.,0.,0.]);
 
     let mut world = World::<1,1>::new();
     world.set_block(1,1,1,STONE);

@@ -1,6 +1,6 @@
 #version 330 core
 layout (location = 10) in vec3 instance_position;
-layout (location = 11) in uint body_part;
+layout (location = 11) in uvec4 body_part_and_bone_type;
 out vec2 UV;
 
 layout (std140) uniform Matrices
@@ -123,15 +123,23 @@ void main()
         vec2(pixel*8.,pixel*32.),vec2(pixel*8.,pixel*8.)
     );
 
+    const float[4] tex_stride = float[4](
+        pixel*32., // Zombie leg
+        pixel*32., // Zombie arm
+        pixel*24., // Zombie torso
+        pixel*24. // Zombie head
+    );
+
     const vec3[6*2] relative_positions_and_joints = vec3[6*2](
         //  relative position       ,      joint rotation anchor
         vec3(unit*(-4), 0, unit*(-2)), vec3(unit*(-2), unit*12., 0), // Zombie left leg
         vec3(unit*0, 0, unit*(-2)), vec3(unit*2, unit*12., 0), // Zombie right leg
         vec3(unit*(-4), unit*12., unit*(-2)), vec3(0, unit*18., 0), // Zombie torso
         vec3(unit*(-4), unit*24., unit*(-4)), vec3(0, unit*28., 0), // Zombie head
-        vec3(unit*(-8), unit*20, unit*(-2)), vec3(unit*(-4), unit*24, 0), // Zombie left hand
-        vec3(unit*(4), unit*20, unit*(-2)), vec3(unit*(4), unit*24, 0) // Zombie right hand
+        vec3(unit*(-8), unit*12, unit*(-2)), vec3(unit*(-4), unit*24, 0), // Zombie left hand
+        vec3(unit*(4), unit*12, unit*(-2)), vec3(unit*(4), unit*24, 0) // Zombie right hand
     );
+
     const uint[6] body_part_to_bone_idx = uint[6](
         uint(0), // Zombie left leg
         uint(0), // Zombie right leg
@@ -141,7 +149,11 @@ void main()
         uint(1) // Zombie right hand
     );
     const uint num_faces = uint(6);
+    uint max_byte = uint(255);
+    float bone_type = float(body_part_and_bone_type.y);
+    uint body_part = body_part_and_bone_type.x;
     uint bone_idx = body_part_to_bone_idx[body_part];
+    float bone_stride = tex_stride[bone_idx];
     vec3 bone_size = bone_sizes[bone_idx];
     uint face_idx = uint(gl_VertexID) / num_faces;
     vec3 relative_position = relative_positions_and_joints[body_part*uint(2)];
@@ -151,5 +163,5 @@ void main()
     vec2 tex_offset = tex_offset_and_size[tex_idx];
     vec2 tex_size = tex_offset_and_size[tex_idx+uint(1)];
     UV = texture_uv[gl_VertexID] * tex_size + tex_offset;
-//    UV.y = 1. - UV.y;
+    UV.x += bone_stride*bone_type;
 }

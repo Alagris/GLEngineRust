@@ -1,4 +1,4 @@
-use crate::render_gl::data::{u8_u8_u8_u8, u8_u8_u8_u8_u32};
+use crate::render_gl::data::{u8_u8_u8_u8};
 use crate::render_gl::data::VertexAttribPointers;
 use crate::render_gl::data::VertexAttrib;
 use crate::render_gl::util::init_array;
@@ -83,15 +83,18 @@ impl FaceOrientation {
 pub struct Face {
     #[location = 11]
     #[divisor = 1]
-    coords: u8_u8_u8_u8_u32,
+    coords: u8_u8_u8_u8,
+    #[location = 13]
+    #[divisor = 1]
+    tex_id: u32,
 }
 
 impl Face {
     fn update_texture(&mut self, new_block:Block){
         let ort = self.block_orientation();
-        self.coords.d4 = new_block.texture_id(ort);
+        self.tex_id = new_block.texture_id(ort);
     }
-    pub fn as_u32(&self) -> (u32, u32) {
+    pub fn coords_and_ort(&self) -> u32 {
         self.coords.as_u32().clone()
     }
     pub fn x(&self) -> u8 {
@@ -113,7 +116,7 @@ impl Face {
         self.coords.d3
     }
     pub fn texture_id(&self) -> u32 {
-        self.coords.d4
+        self.tex_id
     }
     pub fn block_x(&self) -> usize {
         self.coords.d0 as usize
@@ -127,16 +130,13 @@ impl Face {
     pub fn block_orientation(&self) -> FaceOrientation {
         num_traits::FromPrimitive::from_u8(self.coords.d3).unwrap()
     }
-    pub fn coords(&self) -> u32 {
-        self.as_u32().0
-    }
-    pub fn encode_coords(x: u8, y: u8, z: u8, orientation: FaceOrientation) -> u32 {
+    pub fn encode_coords_and_ort(x: u8, y: u8, z: u8, orientation: FaceOrientation) -> u32 {
         assert!((x as usize) < CHUNK_WIDTH);
         assert!((y as usize) < CHUNK_HEIGHT);
         assert!((z as usize) < CHUNK_DEPTH);
         u8_u8_u8_u8::from((x, y, z, orientation as u8)).as_u32().clone()
     }
-    pub fn from_coords(x: u8, y: u8, z: u8, orientation: FaceOrientation, texture_id: u32) -> Self {
+    pub fn from_coords_and_ort(x: u8, y: u8, z: u8, orientation: FaceOrientation, texture_id: u32) -> Self {
         assert!((x as usize) < CHUNK_WIDTH);
         assert!((y as usize) < CHUNK_HEIGHT);
         assert!((z as usize) < CHUNK_DEPTH);
@@ -144,7 +144,7 @@ impl Face {
             std::mem::size_of::<FaceOrientation>(),
             std::mem::size_of::<u8>()
         );
-        Self { coords: u8_u8_u8_u8_u32::from((x, y, z, orientation as u8, texture_id)) }
+        Self { coords: u8_u8_u8_u8::from((x, y, z, orientation as u8)),tex_id:texture_id }
     }
 }
 
@@ -175,26 +175,26 @@ impl ChunkFaces {
         self.push(x,y,z,ort,block)
     }
     fn push(&mut self, x: u8, y: u8, z: u8, ort: FaceOrientation, block: Block) {
-        let face = Face::from_coords(x, y, z, ort, block.texture_id(ort));
-        assert!(self.find_opaque_by_coords(face.coords()).is_none());
-        assert!(self.find_transparent_by_coords(face.coords()).is_none());
+        let face = Face::from_coords_and_ort(x, y, z, ort, block.texture_id(ort));
+        assert!(self.find_opaque_by_coords_and_ort(face.coords_and_ort()).is_none());
+        assert!(self.find_transparent_by_coords_and_ort(face.coords_and_ort()).is_none());
         if block.is_transparent() {
             self.transparent_faces.push(face)
         } else {
             self.opaque_faces.push(face)
         }
     }
-    pub fn find_transparent_by_coords(&self, coords: u32) -> Option<&Face> {
-        self.transparent_faces.iter().find(|f| f.coords() == coords)
+    pub fn find_transparent_by_coords_and_ort(&self, coords: u32) -> Option<&Face> {
+        self.transparent_faces.iter().find(|f| f.coords_and_ort() == coords)
     }
-    pub fn find_opaque_by_coords(&self, coords: u32) -> Option<&Face> {
-        self.opaque_faces.iter().find(|f| f.coords() == coords)
+    pub fn find_opaque_by_coords_and_ort(&self, coords: u32) -> Option<&Face> {
+        self.opaque_faces.iter().find(|f| f.coords_and_ort() == coords)
     }
-    pub fn position_transparent_by_coords(&self, coords: u32) -> Option<usize> {
-        self.transparent_faces.iter().position(|f| f.coords() == coords)
+    pub fn position_transparent_by_coords_and_ort(&self, coords: u32) -> Option<usize> {
+        self.transparent_faces.iter().position(|f| f.coords_and_ort() == coords)
     }
-    pub fn position_opaque_by_coords(&self, coords: u32) -> Option<usize> {
-        self.opaque_faces.iter().position(|f| f.coords() == coords)
+    pub fn position_opaque_by_coords_and_ort(&self, coords: u32) -> Option<usize> {
+        self.opaque_faces.iter().position(|f| f.coords_and_ort() == coords)
     }
     pub fn find_transparent(&self, x: u8, y: u8, z: u8) -> Option<&Face> {
         self.transparent_faces.iter().find(|f| f.matches_coords(x, y, z))
@@ -294,16 +294,16 @@ impl ChunkFaces {
         self.remove_opaque_face(x,y,z,ort)
     }
     fn remove_opaque_face(&mut self, x: u8, y: u8, z: u8, ort: FaceOrientation) {
-        let face = Face::encode_coords(x, y, z, ort);
-        self.remove_opaque_at(self.position_opaque_by_coords(face).unwrap())
+        let face = Face::encode_coords_and_ort(x, y, z, ort);
+        self.remove_opaque_at(self.position_opaque_by_coords_and_ort(face).unwrap())
     }
     fn remove_transparent_block_face(&mut self, x: usize, y: usize, z: usize, ort: FaceOrientation) {
         let (x, y, z) = ((x % CHUNK_WIDTH) as u8, y as u8, (z % CHUNK_DEPTH) as u8);
         self.remove_transparent_face(x,y,z,ort)
     }
     fn remove_transparent_face(&mut self, x: u8, y: u8, z: u8, ort: FaceOrientation) {
-        let face = Face::encode_coords(x, y, z, ort);
-        self.remove_transparent_at(self.position_transparent_by_coords(face).unwrap())
+        let face = Face::encode_coords_and_ort(x, y, z, ort);
+        self.remove_transparent_at(self.position_transparent_by_coords_and_ort(face).unwrap())
     }
     fn update_texture(&mut self, idx: usize, new_block: Block) {
         assert!(!new_block.is_air());
