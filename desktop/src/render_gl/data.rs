@@ -93,6 +93,12 @@ impl From<&[f32; 3]> for f32_f32_f32 {
     }
 }
 
+impl From<&glm::Vec3> for f32_f32_f32 {
+    fn from(other: &glm::Vec3) -> Self {
+        f32_f32_f32::new(other[0], other[1], other[2])
+    }
+}
+
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug)]
@@ -136,6 +142,18 @@ impl From<(f32, f32, f32, f32)> for f32_f32_f32_f32 {
 impl From<&[f32; 4]> for f32_f32_f32_f32 {
     fn from(other: &[f32; 4]) -> Self {
         f32_f32_f32_f32::new(other[0], other[1], other[2], other[4])
+    }
+}
+
+impl From<&glm::Vec4> for f32_f32_f32_f32 {
+    fn from(other: &glm::Vec4) -> Self {
+        Self::new(other[0], other[1], other[2], other[4])
+    }
+}
+
+impl From<&glm::Quat> for f32_f32_f32_f32 {
+    fn from(other: &glm::Quat) -> Self {
+        Self::new(other.i, other.j, other.k, other.w)
     }
 }
 
@@ -428,18 +446,21 @@ impl InstancePosId {
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 #[derive(VertexAttribPointers)]
-pub struct InstancePosBytes {
+pub struct InstancePosBytesRot {
     #[location = 10]
     #[divisor = 1]
     pos: f32_f32_f32, //position
     #[location = 11]
     #[divisor = 1]
     id: u8_u8_u8_u8,
+    #[location = 14]
+    #[divisor = 1]
+    rot: f32_f32_f32_f32, //rotation
 }
 
-impl InstancePosBytes {
-    pub fn new(pos: impl Into<f32_f32_f32>, id: impl Into<u8_u8_u8_u8>) -> Self {
-        Self { pos: pos.into(), id:id.into() }
+impl InstancePosBytesRot {
+    pub fn new(pos: impl Into<f32_f32_f32>, id: impl Into<u8_u8_u8_u8>, rot: impl Into<f32_f32_f32_f32>) -> Self {
+        Self { pos: pos.into(), id:id.into(), rot:rot.into() }
     }
 }
 

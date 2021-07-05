@@ -1,6 +1,7 @@
 #version 330 core
 layout (location = 10) in vec3 instance_position;
 layout (location = 11) in uvec4 body_part_and_bone_type;
+layout (location = 14) in vec4 rotation;
 out vec2 UV;
 
 layout (std140) uniform Matrices
@@ -8,6 +9,16 @@ layout (std140) uniform Matrices
     mat4 MVP;
     mat4 MV;
 };
+
+vec4 quat_mult(vec4 q1, vec4 q2)
+{
+    vec4 qr;
+    qr.x = (q1.w * q2.x) + (q1.x * q2.w) + (q1.y * q2.z) - (q1.z * q2.y);
+    qr.y = (q1.w * q2.y) - (q1.x * q2.z) + (q1.y * q2.w) + (q1.z * q2.x);
+    qr.z = (q1.w * q2.z) + (q1.x * q2.y) - (q1.y * q2.x) + (q1.z * q2.w);
+    qr.w = (q1.w * q2.w) - (q1.x * q2.x) - (q1.y * q2.y) - (q1.z * q2.z);
+    return qr;
+}
 
 void main()
 {
@@ -23,18 +34,18 @@ void main()
     const vec3 H = vec3(0,1,1);// left top back
 
     const vec3[6*6] vertices = vec3[6*6](
-    // YPlus ortientation = block's top face
-    G, F, E, G, E, H,
-     // YMinus ortientation = block's bottom face
-    C, A, B, C, D, A,
-     // XPlus ortientation = block's right face
-    G, B, F, B, G, C,
-    // XMinus ortientation = block's left face
-    A, D, H, A, H, E,
-    // ZPlus ortientation = block's back face
-    H, D, C, G, H, C,
-    // ZMinus ortientation = block's front face
-    F, B, A, F, A, E
+        // YPlus ortientation = block's top face
+        G, F, E, G, E, H,
+         // YMinus ortientation = block's bottom face
+        C, A, B, C, D, A,
+         // XPlus ortientation = block's right face
+        G, B, F, B, G, C,
+        // XMinus ortientation = block's left face
+        A, D, H, A, H, E,
+        // ZPlus ortientation = block's back face
+        H, D, C, G, H, C,
+        // ZMinus ortientation = block's front face
+        F, B, A, F, A, E
     );
     //Next we define texture UV coordinates for this cube
     const vec2 K = vec2(0,0);// left bottom
@@ -132,12 +143,12 @@ void main()
 
     const vec3[6*2] relative_positions_and_joints = vec3[6*2](
         //  relative position       ,      joint rotation anchor
-        vec3(unit*(-4), 0, unit*(-2)), vec3(unit*(-2), unit*12., 0), // Zombie left leg
-        vec3(unit*0, 0, unit*(-2)), vec3(unit*2, unit*12., 0), // Zombie right leg
-        vec3(unit*(-4), unit*12., unit*(-2)), vec3(0, unit*18., 0), // Zombie torso
-        vec3(unit*(-4), unit*24., unit*(-4)), vec3(0, unit*28., 0), // Zombie head
-        vec3(unit*(-8), unit*12, unit*(-2)), vec3(unit*(-4), unit*24, 0), // Zombie left hand
-        vec3(unit*(4), unit*12, unit*(-2)), vec3(unit*(4), unit*24, 0) // Zombie right hand
+        vec3(unit*(-4), 0, unit*(-2)), vec3(unit*4., unit*12., unit*2), // Zombie left leg
+        vec3(unit*0, 0, unit*(-2)), vec3(unit*0., unit*12., unit*2), // Zombie right leg
+        vec3(unit*(-4), unit*12., unit*(-2)), vec3(unit*4, unit*6., unit*2), // Zombie torso
+        vec3(unit*(-4), unit*24., unit*(-4)), vec3(unit*4,0,unit*4), // Zombie head
+        vec3(unit*(-8), unit*12, unit*(-2)), vec3(unit*4, unit*10., unit*2), // Zombie left hand
+        vec3(unit*(4), unit*12, unit*(-2)), vec3(unit*0, unit*10., unit*2) // Zombie right hand
     );
 
     const uint[6] body_part_to_bone_idx = uint[6](
@@ -157,8 +168,11 @@ void main()
     vec3 bone_size = bone_sizes[bone_idx];
     uint face_idx = uint(gl_VertexID) / num_faces;
     vec3 relative_position = relative_positions_and_joints[body_part*uint(2)];
-    vec3 vertex_pos = vertices[gl_VertexID] * bone_size + relative_position + instance_position;
-    gl_Position = MVP * vec4(vertex_pos, 1.0);
+    vec3 joint_position = relative_positions_and_joints[body_part*uint(2)+uint(1)];
+    vec3 local_vertex_pos = vertices[gl_VertexID] * bone_size;
+    vec3 rotated_vertex_pos = quat_mult(vec4(local_vertex_pos - joint_position, 0.), rotation).xyz+joint_position;
+    vec3 absolute_vertex_pos = rotated_vertex_pos + relative_position + instance_position;
+    gl_Position = MVP * vec4(absolute_vertex_pos, 1.0);
     uint tex_idx = bone_idx*num_faces*uint(2) + face_idx*uint(2);
     vec2 tex_offset = tex_offset_and_size[tex_idx];
     vec2 tex_size = tex_offset_and_size[tex_idx+uint(1)];
