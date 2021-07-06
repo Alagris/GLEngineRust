@@ -6,7 +6,7 @@ use crate::resources::Resources;
 use failure::err_msg;
 use sdl2::video::Window;
 use sdl2::{Sdl, TimerSubsystem};
-use crate::blocks::world::{World, WorldFaces, WorldChunks, Block};
+use crate::blocks::world::{World, Block};
 use crate::render_gl::instanced_model::InstancedModel;
 use crate::render_gl::instanced_array_model::InstancedArrayModel;
 use crate::render_gl::array_model::{ArrayModel, Primitive};
@@ -59,6 +59,7 @@ pub fn run(
     let mut matrices = UniformBuffer::new(Matrices{ mvp: glm::identity(), mv: glm::identity() },&gl);
     let texture_uniform = warn_ok(shader_program.get_uniform_texture("myTextureSampler").map_err(err_msg)).unwrap();
     let matrices_uniform = warn_ok(shader_program.get_uniform_std140::<Matrices,2>("Matrices").map_err(err_msg)).unwrap();
+    let chunk_location_uniform = warn_ok(shader_program.get_uniform_vec3fv("chunk_location").map_err(err_msg)).unwrap();
     shader_program.set_uniform_buffer(matrices_uniform,&matrices);
     let orb_matrices_uniform = warn_ok(orb_program.get_uniform_std140("Matrices").map_err(err_msg)).unwrap();
     orb_program.set_uniform_buffer(orb_matrices_uniform,&matrices);
@@ -69,13 +70,19 @@ pub fn run(
     entities.push(Entity::Zombie(ZombieVariant::Zombie), &glm::vec3(4.,0.,0.), &glm::quat_angle_axis(0f32, &glm::vec3(0., 1., 0.)));
     entities.push(Entity::Zombie(ZombieVariant::Steve), &glm::vec3(5.,0.,0.),&glm::quat_angle_axis(2f32, &glm::vec3(0., 1., 0.)));
 
-    let mut world = World::<1,1>::new();
+    let mut world = World::new(2,2, &gl);
     world.set_block(1,1,1,STONE);
     world.set_block(1,2,1,STONE);
     world.set_block(1,1,2,STONE);
     world.set_block(15,0,15,GRASS);
     world.set_block(14,0,15,GRASS);
     world.set_block(13,0,15,GRASS);
+    world.set_block(15,0,16,GRASS);
+    world.set_block(14,0,16,GRASS);
+    world.set_block(16,0,13,GRASS);
+    world.set_block(16,0,15,GRASS);
+    world.set_block(16,0,16,GRASS);
+    world.set_block(16,0,17,GRASS);
     world.set_block(2,0,0, SLAB);
     world.set_block(3,0,0,ICE);
     world.set_block(4,0,0,LEAVES);
@@ -85,9 +92,8 @@ pub fn run(
     world.set_block(3,3,3,GLASS);
     world.set_block(3,2,4,GLASS);
     world.set_block(3,3,4,GLASS);
+    world.gl_update_all_chunks();
     // world.compute_faces();
-    let mut model_transparent = InstancedLogicalModel::new(DynamicBuffer::new(world.get_chunk_faces(0,0).transparent_as_slice(),&gl),&gl);
-    let mut model_opaque = InstancedLogicalModel::new(DynamicBuffer::new(world.get_chunk_faces(0,0).opaque_as_slice(),&gl),&gl);
     let mut model_mobs = InstancedLogicalModel::new(DynamicBuffer::new(entities.bone_slice(),&gl),&gl);
     let mut points = vec![VertexSizeAlphaClr::new((0.,0.,0.),64.,(0.,0.,0.,1.));64];
     let mut model_orbs = ArrayModel::new(DynamicBuffer::new(&points,&gl),&gl);
@@ -157,8 +163,7 @@ pub fn run(
             }else{
                 world.ray_cast_place_block(location.as_slice(), ray_trace_vector.as_slice(), Block::new(block_in_hand));
             }
-            model_transparent.ibo_mut().update(world.get_chunk_faces(0,0).transparent_as_slice());
-            model_opaque.ibo_mut().update(world.get_chunk_faces(0,0).opaque_as_slice())
+            world.gl_update_all_chunks();
         }
 
         // draw triangle
@@ -181,8 +186,7 @@ pub fn run(
         // shader_program.set_uniform_matrix4fv(mvp_uniform, mvp.as_slice());
         shader_program.set_used();
         shader_program.set_uniform_texture(texture_uniform, &texture, 0);
-        model_opaque.draw_instanced_triangles(0,/*one quad=2 triangles=6 vertices*/6, model_opaque.ibo().len());
-        model_transparent.draw_instanced_triangles(0,/*one quad=2 triangles=6 vertices*/6, model_transparent.ibo().len());
+        world.gl_draw(chunk_location_uniform,&shader_program);
 
         orb_program.set_used();
         model_orbs.draw_vertices(Primitive::Points, 64);

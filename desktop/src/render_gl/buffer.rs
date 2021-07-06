@@ -70,6 +70,9 @@ impl<B, T, U> Buffer<B, T, U> where B: BufferType, U: BufferUsage {
         assert_eq!(size % std::mem::size_of::<T>(), 0);
         size
     }
+    pub fn mem_len(&self) -> usize {
+        self.mem_size()/std::mem::size_of::<T>()
+    }
     pub fn len(&self) -> usize {
         self.len
     }
@@ -160,7 +163,6 @@ impl<B, T> Buffer<B, T, BufferDynamicDraw> where B: BufferType {
             unsafe {
                 self.update_unchecked(data);
             }
-            self.len = data.len();
         } else {
             let new_capacity = Self::amortization(len);
             self.create_buffer(new_capacity, &[]);
@@ -168,6 +170,7 @@ impl<B, T> Buffer<B, T, BufferDynamicDraw> where B: BufferType {
                 self.update_unchecked(data);
             }
         }
+        self.len = data.len();
     }
 }
 

@@ -2,6 +2,7 @@
 layout (location = 11) in uvec4 coords;
 layout (location = 13) in uint tex_id;
 out vec2 UV;
+uniform vec3 chunk_location;
 
 layout (std140) uniform Matrices
 {
@@ -62,7 +63,7 @@ void main()
     uint orientation = coords.w;
     vec3 block_position = vec3(float(x),float(y),float(z));
     vec3 vertex_pos = vertices[orientation*uint(6) + uint(gl_VertexID)];
-    gl_Position = MVP * vec4(vertex_pos+block_position, 1.0);
+    gl_Position = MVP * vec4(vertex_pos+block_position+chunk_location, 1.0);
     vec2 uv = texture_uv[orientation*uint(6) + uint(gl_VertexID)];
     UV = vec2(uv.x + float(tex_id)*single_block_u,uv.y);
 }

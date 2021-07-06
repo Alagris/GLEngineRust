@@ -1,6 +1,6 @@
 pub mod buffer;
 pub mod color_buffer;
-mod shader;
+pub(crate) mod shader;
 pub use self::shader::{Error, Program, Shader, UniformMatrix4fv};
 pub mod data;
 mod viewport;
