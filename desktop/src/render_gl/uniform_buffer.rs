@@ -47,8 +47,10 @@ pub struct UniformBuffer<B: BufferType, T, U: BufferUsage, const BindingPoint: u
 }
 
 impl<B: BufferType, T, U: BufferUsage, const BindingPoint: u32> UniformBuffer<B, T, U, BindingPoint> {
-    pub fn ubo(&self)->gl::types::GLuint{
-        self.ubo
+    pub fn bind_base(&self){
+        unsafe{
+            self.gl.BindBufferBase(B::BUFFER_TYPE, BindingPoint, self.ubo)
+        }
     }
     pub fn new(data: T, gl: &gl::Gl) -> Self {
         if B::BUFFER_TYPE==gl::UNIFORM_BUFFER{
@@ -160,4 +162,6 @@ pub struct vec3_a16(glm::Vec3);
 pub struct ivec3_a16(glm::IVec3);
 #[repr(align(16))]
 pub struct uvec3_a16(glm::UVec3);
-// pub type ShaderStorageBuffer<T> = Buffer<BufferTypeShaderStorage, T, BufferStaticDraw>;
+
+
+pub type ShaderStorageBuffer<T,U:BufferUsage,const BindingPoint:u32> = UniformBuffer<Std430, T, U,BindingPoint>;

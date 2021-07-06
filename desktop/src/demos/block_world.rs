@@ -11,7 +11,7 @@ use crate::render_gl::instanced_model::InstancedModel;
 use crate::render_gl::instanced_array_model::InstancedArrayModel;
 use crate::render_gl::array_model::{ArrayModel, Primitive};
 use crate::render_gl::instanced_logical_model::InstancedLogicalModel;
-use crate::render_gl::buffer::{DynamicBuffer, AnyBuffer};
+use crate::render_gl::buffer::{DynamicBuffer, AnyBuffer, ShaderStorageArrayBuffer};
 use crate::render_gl::texture::Filter::Nearest;
 use crate::blocks::block_properties::{STONE, GRASS, GLASS, CRAFTING, SLAB, ICE, LEAVES, TNT};
 use crate::render_gl::uniform_buffer::UniformBuffer;
@@ -66,7 +66,8 @@ pub fn run(
     let mobs_matrices_uniform = warn_ok(mobs_program.get_uniform_std140::<Matrices,2>("Matrices").map_err(err_msg)).unwrap();
     mobs_program.set_uniform_buffer(mobs_matrices_uniform,&matrices);
     let mut entities = Entities::new();
-    entities.push(Entity::Zombie(ZombieVariant::Zombie), &[4.,0.,0.]);
+    entities.push(Entity::Zombie(ZombieVariant::Zombie), &glm::vec3(4.,0.,0.));
+    entities.push(Entity::Zombie(ZombieVariant::Steve), &glm::vec3(5.,0.,0.));
 
     let mut world = World::<1,1>::new();
     world.set_block(1,1,1,STONE);
@@ -87,14 +88,14 @@ pub fn run(
     // world.compute_faces();
     let mut model_transparent = InstancedLogicalModel::new(DynamicBuffer::new(world.get_chunk_faces(0,0).transparent_as_slice(),&gl),&gl);
     let mut model_opaque = InstancedLogicalModel::new(DynamicBuffer::new(world.get_chunk_faces(0,0).opaque_as_slice(),&gl),&gl);
-    let mut model_mobs = InstancedLogicalModel::new(DynamicBuffer::new(entities.as_slice(),&gl),&gl);
+    let mut model_mobs = InstancedLogicalModel::new(DynamicBuffer::new(entities.bone_slice(),&gl),&gl);
     let mut points = vec![VertexSizeAlphaClr::new((0.,0.,0.),64.,(0.,0.,0.,1.));64];
     let mut model_orbs = ArrayModel::new(DynamicBuffer::new(&points,&gl),&gl);
     let model_matrix = glm::identity::<f32, 4>();
     let mut rotation = glm::quat_identity();
     let mut location = glm::vec4(0f32, 2f32, 2f32, 0f32);
     let mut block_in_hand = 2u32;
-    let movement_speed = 0.001f32;
+    let movement_speed = 0.005f32;
     let player_reach = 3f32;
     let rotation_speed = 1f32;
     let mut fps_counter = render_gl::fps::FpsCounter::new(timer,60);

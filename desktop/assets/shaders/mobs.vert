@@ -1,6 +1,7 @@
 #version 330 core
+
 layout (location = 10) in vec3 instance_position;
-layout (location = 11) in uvec4 body_part_and_bone_type;
+layout (location = 12) in uvec2 body_part_and_bone_variant;
 layout (location = 14) in vec4 rotation;
 out vec2 UV;
 
@@ -10,6 +11,11 @@ layout (std140) uniform Matrices
     mat4 MV;
 };
 
+vec4 quat_conj(vec4 q)
+{
+    return vec4(-q.x, -q.y, -q.z, q.w);
+}
+
 vec4 quat_mult(vec4 q1, vec4 q2)
 {
     vec4 qr;
@@ -18,6 +24,10 @@ vec4 quat_mult(vec4 q1, vec4 q2)
     qr.z = (q1.w * q2.z) + (q1.x * q2.y) - (q1.y * q2.x) + (q1.z * q2.w);
     qr.w = (q1.w * q2.w) - (q1.x * q2.x) - (q1.y * q2.y) - (q1.z * q2.z);
     return qr;
+}
+
+vec3 quat_rotate_vec(vec4 q, vec3 v){
+    return quat_mult(q,quat_mult(vec4(v,0.),quat_conj(q))).xyz;
 }
 
 void main()
@@ -71,11 +81,17 @@ void main()
     //Now we list a bunch of predefined sizes, that will be used as hands, legs, heads etc.
     //All sizes are specified in a specific unit of minecraft pixels (every block is 16x16 pixels)
     const float unit = 1./16.;
-    const vec3[4] bone_sizes = vec3[4](
-        vec3(unit*4.,unit*12.,unit*4.), // zombie leg
-        vec3(unit*4.,unit*12.,unit*4.), // zombie arm
-        vec3(unit*8.,unit*12.,unit*4.), // zombie torso
-        vec3(unit*8.,unit*8.,unit*8.) // zombie head
+    const vec3 zombie_leg_size=vec3(unit*4.,unit*12.,unit*4.);
+    const vec3 zombie_arm_size=zombie_leg_size;
+    const vec3 zombie_torso_size=vec3(unit*8.,unit*12.,unit*4.);
+    const vec3 zombie_head_size=vec3(unit*8.,unit*8.,unit*8.);
+    const vec3[6*2] body_part_size_and_joint_pos = vec3[6*2](
+        zombie_leg_size,   vec3(unit*4., unit*12., unit*2), // Zombie left leg
+        zombie_leg_size,   vec3(unit*0., unit*12., unit*2), // Zombie right leg
+        zombie_torso_size, zombie_torso_size/2.,   // Zombie torso
+        zombie_head_size,  vec3(unit*4,0,unit*4),           // Zombie head
+        zombie_arm_size,   vec3(unit*4, unit*10., unit*2),  // Zombie left arm
+        zombie_arm_size,   vec3(unit*0, unit*10., unit*2)   // Zombie right arm
     );
 
     const float pixel = 1./64.; //size of a single texture pixel measured in UV coordinates
@@ -133,24 +149,6 @@ void main()
         // ZMinus
         vec2(pixel*8.,pixel*32.),vec2(pixel*8.,pixel*8.)
     );
-
-    const float[4] tex_stride = float[4](
-        pixel*32., // Zombie leg
-        pixel*32., // Zombie arm
-        pixel*24., // Zombie torso
-        pixel*24. // Zombie head
-    );
-
-    const vec3[6*2] relative_positions_and_joints = vec3[6*2](
-        //  relative position       ,      joint rotation anchor
-        vec3(unit*(-4), 0, unit*(-2)), vec3(unit*4., unit*12., unit*2), // Zombie left leg
-        vec3(unit*0, 0, unit*(-2)), vec3(unit*0., unit*12., unit*2), // Zombie right leg
-        vec3(unit*(-4), unit*12., unit*(-2)), vec3(unit*4, unit*6., unit*2), // Zombie torso
-        vec3(unit*(-4), unit*24., unit*(-4)), vec3(unit*4,0,unit*4), // Zombie head
-        vec3(unit*(-8), unit*12, unit*(-2)), vec3(unit*4, unit*10., unit*2), // Zombie left hand
-        vec3(unit*(4), unit*12, unit*(-2)), vec3(unit*0, unit*10., unit*2) // Zombie right hand
-    );
-
     const uint[6] body_part_to_bone_idx = uint[6](
         uint(0), // Zombie left leg
         uint(0), // Zombie right leg
@@ -159,23 +157,28 @@ void main()
         uint(1), // Zombie left hand
         uint(1) // Zombie right hand
     );
+    const float[4] tex_stride = float[4](
+        pixel*32., // Zombie leg
+        pixel*32., // Zombie arm
+        pixel*24., // Zombie torso
+        pixel*24. // Zombie head
+    );
+
     const uint num_faces = uint(6);
-    uint max_byte = uint(255);
-    float bone_type = float(body_part_and_bone_type.y);
-    uint body_part = body_part_and_bone_type.x;
+    float bone_variant = float(body_part_and_bone_variant.y);
+    uint body_part = body_part_and_bone_variant.x;
     uint bone_idx = body_part_to_bone_idx[body_part];
     float bone_stride = tex_stride[bone_idx];
-    vec3 bone_size = bone_sizes[bone_idx];
+    vec3 bone_size = body_part_size_and_joint_pos[body_part*uint(2)];
+    vec3 joint_position = body_part_size_and_joint_pos[body_part*uint(2)+uint(1)];
     uint face_idx = uint(gl_VertexID) / num_faces;
-    vec3 relative_position = relative_positions_and_joints[body_part*uint(2)];
-    vec3 joint_position = relative_positions_and_joints[body_part*uint(2)+uint(1)];
-    vec3 local_vertex_pos = vertices[gl_VertexID] * bone_size;
-    vec3 rotated_vertex_pos = quat_mult(vec4(local_vertex_pos - joint_position, 0.), rotation).xyz+joint_position;
-    vec3 absolute_vertex_pos = rotated_vertex_pos + relative_position + instance_position;
+    vec3 local_vertex_pos = vertices[gl_VertexID] * bone_size - joint_position;
+    vec3 rotated_vertex_pos = quat_rotate_vec(rotation, local_vertex_pos);
+    vec3 absolute_vertex_pos = rotated_vertex_pos + instance_position;
     gl_Position = MVP * vec4(absolute_vertex_pos, 1.0);
     uint tex_idx = bone_idx*num_faces*uint(2) + face_idx*uint(2);
     vec2 tex_offset = tex_offset_and_size[tex_idx];
     vec2 tex_size = tex_offset_and_size[tex_idx+uint(1)];
     UV = texture_uv[gl_VertexID] * tex_size + tex_offset;
-    UV.x += bone_stride*bone_type;
+    UV.x += bone_stride*bone_variant;
 }

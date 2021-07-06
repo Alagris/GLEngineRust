@@ -108,6 +108,7 @@ impl<B, T, U> Buffer<B, T, U> where B: BufferType, U: BufferUsage {
         self.unbind();
     }
 }
+
 impl<B, T> AnyBuffer<T> for Buffer<B, T, BufferStaticDraw> where B: BufferType {
     fn new(data: &[T], gl: &gl::Gl) -> Self {
         let me = Buffer {
@@ -200,6 +201,7 @@ impl<B, T> AnyBuffer<T> for Buffer<B, T, BufferDynamicFixedLen> where B: BufferT
         self.len()
     }
 }
+
 impl<B, T> Buffer<B, T, BufferDynamicFixedLen> where B: BufferType {
     pub fn update(&mut self, data: &[T]) -> Result<(), failure::Error> {
         let len = data.len();
@@ -213,7 +215,13 @@ impl<B, T> Buffer<B, T, BufferDynamicFixedLen> where B: BufferType {
         }
     }
 }
-
+impl<U, T, const BindingPoint:u32> Buffer<BufferTypeShaderStorage<BindingPoint>, T, U> where U: BufferUsage {
+    pub fn bind_base(&self){
+        unsafe{
+            self.gl.BindBufferBase(BufferTypeShaderStorage::<BindingPoint>::BUFFER_TYPE, BindingPoint, self.vbo)
+        }
+    }
+}
 impl<B, T, U> Drop for Buffer<B, T, U> where B: BufferType, U: BufferUsage {
     fn drop(&mut self) {
         unsafe {
@@ -239,9 +247,25 @@ impl BufferType for BufferTypeElementArray {
 }
 
 
+pub struct BufferTypeShaderStorage<const BindingPoint: u32>;
+
+impl<const BindingPoint: u32> BufferType for BufferTypeShaderStorage<BindingPoint> {
+    const BUFFER_TYPE: gl::types::GLuint = gl::SHADER_STORAGE_BUFFER;
+}
+
+
 pub type ArrayBuffer<T> = Buffer<BufferTypeArray, T, BufferStaticDraw>;
 pub type DynamicBuffer<T> = Buffer<BufferTypeArray, T, BufferDynamicDraw>;
 pub type ElementArrayBuffer<T> = Buffer<BufferTypeElementArray, T, BufferStaticDraw>;
+/**If you need to store uniform buffer that has fields, you are better off using uniform_buffer::ShaderStorageBuffer.
+This type is meant to represent shader uniform buffers like
+layout (std430) buffer Foo
+{
+    T[] globalBuffer;
+};
+Here there is only one field and it's meant to work as a *dynamic* array.
+*/
+pub type ShaderStorageArrayBuffer<T, const BindingPoint: u32> = Buffer<BufferTypeShaderStorage<BindingPoint>, T, BufferDynamicDraw>;
 
 pub struct VertexArray {
     gl: gl::Gl,

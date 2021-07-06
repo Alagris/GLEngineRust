@@ -6,6 +6,8 @@ use std::ffi::{CStr, CString};
 use crate::render_gl::gl_error::drain_gl_errors;
 use std::marker::PhantomData;
 use crate::render_gl::uniform_buffer::{UniformBuffer, BufferUsage, BufferType, Constant, Variable, Std140, Std430};
+use crate::render_gl::buffer::ShaderStorageArrayBuffer;
+use crate::render_gl::buffer;
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -215,7 +217,20 @@ impl Program {
         unsafe {
             self.gl.UniformBlockBinding(self.id, binding_point.id, BindingPoint);
             drain_gl_errors(&self.gl);
-            self.gl.BindBufferBase(gl::UNIFORM_BUFFER, BindingPoint, buffer.ubo());
+            buffer.bind_base();
+            drain_gl_errors(&self.gl);
+        }
+    }
+
+    pub fn set_shader_storage_buffer<T, const BindingPoint:u32>(
+        &self,
+        binding_point: UniformBufferBindingPoint<Std430,&[T],BindingPoint>,
+        buffer: &ShaderStorageArrayBuffer<T,BindingPoint>
+    ) {
+        unsafe {
+            self.gl.UniformBlockBinding(self.id, binding_point.id, BindingPoint);
+            drain_gl_errors(&self.gl);
+            buffer.bind_base();
             drain_gl_errors(&self.gl);
         }
     }

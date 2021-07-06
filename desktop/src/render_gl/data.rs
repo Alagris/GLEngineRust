@@ -51,7 +51,18 @@ pub trait VertexAttrib {
         drain_gl_errors(gl);
     }
 }
-
+impl VertexAttrib for glm::Quat{
+    const NUMBER_OF_COMPONENTS: gl::types::GLint = 4;
+    const GL_TYPE: gl::types::GLenum = gl::FLOAT;
+}
+impl VertexAttrib for glm::Vec4{
+    const NUMBER_OF_COMPONENTS: gl::types::GLint = 4;
+    const GL_TYPE: gl::types::GLenum = gl::FLOAT;
+}
+impl VertexAttrib for glm::Vec3{
+    const NUMBER_OF_COMPONENTS: gl::types::GLint = 3;
+    const GL_TYPE: gl::types::GLenum = gl::FLOAT;
+}
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
@@ -99,6 +110,11 @@ impl From<&glm::Vec3> for f32_f32_f32 {
     }
 }
 
+impl From<glm::Vec3> for f32_f32_f32 {
+    fn from(other: glm::Vec3) -> Self {
+        f32_f32_f32::new(other[0], other[1], other[2])
+    }
+}
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug)]
@@ -381,21 +397,6 @@ impl VertexSizeAlphaClr {
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 #[derive(VertexAttribPointers)]
-pub struct UInt {
-    #[location = 6]
-    #[divisor = 1]
-    uint: u32, //some integer
-}
-
-impl UInt {
-    pub fn new(uint: u32) -> Self {
-        Self { uint }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-#[repr(C, packed)]
-#[derive(VertexAttribPointers)]
 pub struct Instance {
     #[location = 10]
     #[divisor = 1]
@@ -408,76 +409,6 @@ impl Instance {
     }
 }
 
-
-#[derive(Copy, Clone, Debug)]
-#[repr(C, packed)]
-#[derive(VertexAttribPointers)]
-pub struct InstanceUInt {
-    #[location = 11]
-    #[divisor = 1]
-    uint: u32, //some integer
-}
-
-impl InstanceUInt {
-    pub fn new(uint: u32) -> Self {
-        Self { uint }
-    }
-}
-
-
-#[derive(Copy, Clone, Debug)]
-#[repr(C, packed)]
-#[derive(VertexAttribPointers)]
-pub struct InstancePosId {
-    #[location = 10]
-    #[divisor = 1]
-    pos: f32_f32_f32, //position
-    #[location = 11]
-    #[divisor = 1]
-    id: u32,
-}
-
-impl InstancePosId {
-    pub fn new(pos: impl Into<f32_f32_f32>, id:u32) -> Self {
-        Self { pos: pos.into(), id }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-#[repr(C, packed)]
-#[derive(VertexAttribPointers)]
-pub struct InstancePosBytesRot {
-    #[location = 10]
-    #[divisor = 1]
-    pos: f32_f32_f32, //position
-    #[location = 11]
-    #[divisor = 1]
-    id: u8_u8_u8_u8,
-    #[location = 14]
-    #[divisor = 1]
-    rot: f32_f32_f32_f32, //rotation
-}
-
-impl InstancePosBytesRot {
-    pub fn new(pos: impl Into<f32_f32_f32>, id: impl Into<u8_u8_u8_u8>, rot: impl Into<f32_f32_f32_f32>) -> Self {
-        Self { pos: pos.into(), id:id.into(), rot:rot.into() }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-#[repr(C, packed)]
-#[derive(VertexAttribPointers)]
-pub struct InstanceBytes {
-    #[location = 11]
-    #[divisor = 1]
-    uint: u8_u8_u8_u8, //4 bytes packed as one integer
-}
-
-impl InstanceBytes {
-    pub fn new(uint: u8_u8_u8_u8) -> Self {
-        Self { uint }
-    }
-}
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
