@@ -66,8 +66,8 @@ pub fn run(
     let mobs_matrices_uniform = warn_ok(mobs_program.get_uniform_std140::<Matrices,2>("Matrices").map_err(err_msg)).unwrap();
     mobs_program.set_uniform_buffer(mobs_matrices_uniform,&matrices);
     let mut entities = Entities::new();
-    entities.push(Entity::Zombie(ZombieVariant::Zombie), &glm::vec3(4.,0.,0.));
-    entities.push(Entity::Zombie(ZombieVariant::Steve), &glm::vec3(5.,0.,0.));
+    entities.push(Entity::Zombie(ZombieVariant::Zombie), &glm::vec3(4.,0.,0.), &glm::quat_angle_axis(0f32, &glm::vec3(0., 1., 0.)));
+    entities.push(Entity::Zombie(ZombieVariant::Steve), &glm::vec3(5.,0.,0.),&glm::quat_angle_axis(2f32, &glm::vec3(0., 1., 0.)));
 
     let mut world = World::<1,1>::new();
     world.set_block(1,1,1,STONE);
@@ -172,6 +172,8 @@ pub fn run(
         matrices.mvp = projection_matrix * &matrices.mv;
         matrices.update();
 
+        entities.update(0,&glm::vec3((fps_counter.ticks() as f32/1000.).sin(),0.,0.), &glm::quat_angle_axis(fps_counter.ticks() as f32/1000., &glm::vec3(0., 1., 0.)));
+        model_mobs.ibo_mut().update(entities.bone_slice());
         mobs_program.set_used();
         mobs_program.set_uniform_texture(mobs_texture_uniform, &zombie_texture, 0);
         model_mobs.draw_instanced_triangles(0,/*1 cube=6 quads=12 triangles=36 vertices*/36, model_mobs.ibo().len());

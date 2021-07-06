@@ -38,4 +38,7 @@ impl FpsCounter {
     pub fn delta_f32(&self) -> f32 {
         self.delta as f32
     }
+    pub fn ticks(&self) -> u32{
+        self.previous
+    }
 }

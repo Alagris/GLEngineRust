@@ -32,6 +32,12 @@ impl BoneInstance {
     pub fn bone_variant(&self) -> u8 {
         self.body_part_and_bone_variant.d1
     }
+
+    pub fn update(&mut self,entity_position: &glm::Vec3, entity_rotation:&glm::Quat){
+        let body_part = self.body_part();
+        self.position=body_part.absolute_rotated_position(entity_position,entity_rotation);
+        self.rotation = entity_rotation.clone();
+    }
 }
 #[derive(FromPrimitive, Copy, Clone, Eq, PartialEq, Debug)]
 pub enum BodyPart {
@@ -140,26 +146,38 @@ impl Entities {
         assert_eq!(corrupt_owner,self.bone_to_entity[bone_idx]);
         assert_eq!(self.bone_to_entity.len(), self.bones.len());
     }
-    pub fn push(&mut self, ent: Entity, pos: &glm::Vec3) -> usize {
+    pub fn update(&mut self, entity_id: usize, entity_position: &glm::Vec3, entity_rotation:&glm::Quat) {
+        match self.entity_to_bones[entity_id]{
+            EntityBones::Zombie(left_leg, right_leg, torso, head, left_arm, right_arm) => {
+                self.bones[left_leg].update(entity_position, entity_rotation);
+                self.bones[right_leg].update(entity_position, entity_rotation);
+                self.bones[torso].update(entity_position, entity_rotation);
+                self.bones[head].update(entity_position, entity_rotation);
+                self.bones[left_arm].update(entity_position, entity_rotation);
+                self.bones[right_arm].update(entity_position, entity_rotation);
+            }
+        }
+    }
+    pub fn push(&mut self, ent: Entity, entity_position: &glm::Vec3, entity_rotation:&glm::Quat) -> usize {
         assert_eq!(self.bone_to_entity.len(), self.bones.len());
         match ent {
             Entity::Zombie(variant) => {
                 let entity_id = self.entity_to_bones.len();
                 let variant = variant as u8;
-                let entity_rotation = glm::quat_angle_axis(2f32, &glm::vec3(0., 1., 0.));
                 let bones = EntityBones::Zombie(
-                    self.add_bone(entity_id, BoneInstance::new(pos, &entity_rotation,BodyPart::ZombieLeftLeg, variant, glm::quat_angle_axis(-0.5, &glm::vec3(1., 0., 0.)))),
-                    self.add_bone(entity_id, BoneInstance::new(pos, &entity_rotation,BodyPart::ZombieRightLeg, variant, glm::quat_angle_axis(0.5, &glm::vec3(1., 0., 0.)))),
-                    self.add_bone(entity_id, BoneInstance::new(pos, &entity_rotation,BodyPart::ZombieTorso, variant, glm::quat_angle_axis(0., &glm::vec3(1., 0., 0.)))),
-                    self.add_bone(entity_id, BoneInstance::new(pos, &entity_rotation,BodyPart::ZombieHead, variant, glm::quat_angle_axis(0.1, &glm::vec3(0., 0., 1.)))),
-                    self.add_bone(entity_id, BoneInstance::new(pos, &entity_rotation,BodyPart::ZombieLeftArm, variant, glm::quat_angle_axis(1., &glm::vec3(1., 0., 0.)))),
-                    self.add_bone(entity_id, BoneInstance::new(pos, &entity_rotation,BodyPart::ZombieRightArm, variant, glm::quat_angle_axis(1., &glm::vec3(1., 0., 0.)))),
+                    self.add_bone(entity_id, BoneInstance::new(entity_position, entity_rotation,BodyPart::ZombieLeftLeg, variant, glm::quat_identity())),
+                    self.add_bone(entity_id, BoneInstance::new(entity_position, entity_rotation,BodyPart::ZombieRightLeg, variant, glm::quat_identity())),
+                    self.add_bone(entity_id, BoneInstance::new(entity_position, entity_rotation,BodyPart::ZombieTorso, variant, glm::quat_identity())),
+                    self.add_bone(entity_id, BoneInstance::new(entity_position, entity_rotation,BodyPart::ZombieHead, variant, glm::quat_identity())),
+                    self.add_bone(entity_id, BoneInstance::new(entity_position, entity_rotation,BodyPart::ZombieLeftArm, variant, glm::quat_identity())),
+                    self.add_bone(entity_id, BoneInstance::new(entity_position, entity_rotation,BodyPart::ZombieRightArm, variant, glm::quat_identity())),
                 );
                 self.entity_to_bones.push(bones);
                 entity_id
             }
         }
     }
+
     pub fn remove(&mut self, entity_id: usize) {
         let bones_to_remove = &self.entity_to_bones[entity_id];
         match bones_to_remove {
