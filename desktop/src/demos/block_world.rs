@@ -6,7 +6,7 @@ use crate::resources::Resources;
 use failure::err_msg;
 use sdl2::video::Window;
 use sdl2::{Sdl, TimerSubsystem};
-use crate::blocks::world::{World, Block};
+use crate::blocks::{World, Block};
 use crate::render_gl::instanced_model::InstancedModel;
 use crate::render_gl::instanced_array_model::InstancedArrayModel;
 use crate::render_gl::array_model::{ArrayModel, Primitive};
@@ -15,7 +15,8 @@ use crate::render_gl::buffer::{DynamicBuffer, AnyBuffer, ShaderStorageArrayBuffe
 use crate::render_gl::texture::Filter::Nearest;
 use crate::blocks::block_properties::{STONE, GRASS, GLASS, CRAFTING, SLAB, ICE, LEAVES, TNT, BLOCKS, BEDROCK, DIRT, PLANK};
 use crate::render_gl::uniform_buffer::UniformBuffer;
-use crate::blocks::entities::{Entities, Entity, ZombieVariant};
+use crate::blocks::{Entities, Entity, ZombieVariant};
+use crate::blocks::WorldSize;
 
 pub fn run(
     gl: gl::Gl,
@@ -71,10 +72,10 @@ pub fn run(
     entities.push(Entity::Zombie(ZombieVariant::Steve), &glm::vec3(5.,0.,0.),&glm::quat_angle_axis(2f32, &glm::vec3(0., 1., 0.)));
 
     let mut world = World::new(2,2, &gl);
-    world.no_update_fill_level(0,1,BEDROCK);
-    world.no_update_fill_level(1,1,DIRT);
-    world.no_update_fill_level(2,1,GRASS);
-    world.no_update_outline(5,2,5,5,5,5,PLANK);
+    world.blocks_mut().no_update_fill_level(0,1,BEDROCK);
+    world.blocks_mut().no_update_fill_level(1,1,DIRT);
+    world.blocks_mut().no_update_fill_level(2,1,GRASS);
+    world.blocks_mut().no_update_outline(5,2,5,5,5,5,PLANK);
     world.compute_faces();
     world.gl_update_all_chunks();
 

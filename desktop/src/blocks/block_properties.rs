@@ -1,4 +1,4 @@
-use crate::blocks::world::{FaceOrientation, Block};
+use crate::blocks::{FaceOrientation, Block};
 
 pub struct BlockProp{
     name:&'static str,
