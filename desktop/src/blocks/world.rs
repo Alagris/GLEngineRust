@@ -163,21 +163,20 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub fn gl_update_opaque(&mut self) -> bool{
+    pub fn gl_update_opaque(&mut self) -> bool {
         let Self {
             opaque_faces,
             has_opaque_faces_to_update,
-            opaque_faces_model,..
+            opaque_faces_model, ..
         } = self;
         if *has_opaque_faces_to_update {
             *has_opaque_faces_to_update = false;
             opaque_faces_model.ibo_mut().update(opaque_faces.as_slice());
-            assert_eq!(opaque_faces_model.ibo().len(),opaque_faces.len());
+            assert_eq!(opaque_faces_model.ibo().len(), opaque_faces.len());
             true
-        }else{false}
-
+        } else { false }
     }
-    pub fn gl_update_transparent(&mut self) -> bool{
+    pub fn gl_update_transparent(&mut self) -> bool {
         let Self {
             transparent_faces,
             has_transparent_faces_to_update,
@@ -186,9 +185,9 @@ impl Chunk {
         if *has_transparent_faces_to_update {
             *has_transparent_faces_to_update = false;
             transparent_faces_model.ibo_mut().update(transparent_faces.as_slice());
-            assert_eq!(transparent_faces_model.ibo().len(),transparent_faces.len());
+            assert_eq!(transparent_faces_model.ibo().len(), transparent_faces.len());
             true
-        }else{false}
+        } else { false }
     }
 
     pub fn len(&self) -> usize {
@@ -397,10 +396,10 @@ pub struct World {
 
 impl World {
     fn remove_block_transparent(&mut self, x: usize, y: usize, z: usize) {
-        self.get_chunk_mut(x, y).remove_block_transparent(x, y, z)
+        self.get_chunk_mut(x, z).remove_block_transparent(x, y, z)
     }
     fn remove_block_opaque(&mut self, x: usize, y: usize, z: usize) {
-        self.get_chunk_mut(x, y).remove_block_opaque(x, y, z)
+        self.get_chunk_mut(x, z).remove_block_opaque(x, y, z)
     }
     fn push_block(&mut self, x: usize, y: usize, z: usize, ort: FaceOrientation, block: Block) {
         self.get_chunk_mut(x, z).push_block(x, y, z, ort, block)
@@ -424,12 +423,12 @@ impl World {
         self.get_chunk_mut(x, z).get_block_mut(x, y, z)
     }
     pub fn chunk_idx_into_chunk_pos(&self, chunk_idx: usize) -> (usize, usize) {
-        assert!(chunk_idx<self.chunks.len());
+        assert!(chunk_idx < self.chunks.len());
         (chunk_idx % self.width, chunk_idx / self.width)
     }
     pub fn chunk_pos_into_chunk_idx(&self, x: usize, z: usize) -> usize {
-        assert!(x<self.width);
-        assert!(z<self.depth);
+        assert!(x < self.width);
+        assert!(z < self.depth);
         z * self.width + x
     }
     pub fn block_pos_into_chunk_idx(&self, x: usize, z: usize) -> usize {
@@ -449,7 +448,75 @@ impl World {
         let chunks: Vec<Chunk> = std::iter::repeat_with(|| Chunk::new(gl)).take(width * depth).collect();
         Self { width, depth, chunks }
     }
-    pub fn set_block(&mut self, x: usize, y: usize, z: usize, block: Block) {
+    pub fn world_depth(&self) -> usize {
+        self.depth * CHUNK_DEPTH
+    }
+    pub fn world_width(&self) -> usize {
+        self.width * CHUNK_WIDTH
+    }
+    pub fn no_update_remove_block(&mut self, x: usize, y: usize, z: usize) {
+        self.no_update_set_block(x, y, z, Block::air())
+    }
+    pub fn no_update_set_block(&mut self, x: usize, y: usize, z: usize, block: Block) {
+        *self.get_block_mut(x, y, z) = block
+    }
+    pub fn no_update_fill(&mut self, from_x: usize, from_y: usize, from_z: usize, width: usize, height: usize, depth: usize, block: Block) {
+        for x in from_x..(from_x + width) {
+            for y in from_y..(from_y + height) {
+                for z in from_z..(from_z + depth) {
+                    self.no_update_set_block(x, y, z, block);
+                }
+            }
+        }
+    }
+    pub fn no_update_outline(&mut self, from_x: usize, from_y: usize, from_z: usize, width: usize, height: usize, depth: usize, block: Block) {
+        self.no_update_fill(from_x, from_y, from_z,width, 1, depth, block);
+        if height > 1 {
+            self.no_update_fill(from_x, from_y + height - 1, from_z , width, 1, depth, block);
+            if height > 2 {
+                for y in from_y+1..(from_y + height-1) {
+                    if width>0 {
+                        for z in from_z..(from_z + depth) {
+                            self.no_update_set_block(from_x, y, z, block);
+                            self.no_update_set_block(from_x + width - 1, y, z, block);
+                        }
+                    }
+                    if depth>2 {
+                        for x in from_x..(from_x + width) {
+                            self.no_update_set_block(x, y, from_z, block);
+                            self.no_update_set_block(x, y, from_z+depth-1, block);
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+    pub fn no_update_fill_level(&mut self, from_y: usize, height: usize, block: Block) {
+        self.no_update_fill(0, from_y, 0, self.world_width(), height, self.world_depth(), block)
+    }
+    pub fn no_update_replace(&mut self, from_x: usize, from_y: usize, from_z: usize, width: usize, height: usize, depth: usize, old_block: Block, new_block: Block) {
+        for x in from_x..(from_x + width) {
+            for y in from_y..(from_y + height) {
+                for z in from_z..(from_z + depth) {
+                    let b = self.get_block_mut(x, y, z);
+                    if b == &old_block {
+                        *b = new_block
+                    }
+                }
+            }
+        }
+    }
+    pub fn no_update_heightmap(&mut self, filler_block: Block, height_at: impl Fn(usize, usize) -> usize) {
+        for x in 0..self.world_width() {
+            for z in 0..self.world_depth() {
+                for y in 0..height_at(x, z) {
+                    self.no_update_set_block(x, y, z, filler_block)
+                }
+            }
+        }
+    }
+    pub fn update_set_block(&mut self, x: usize, y: usize, z: usize, block: Block) {
         self.update_block(x, y, z, move |b| {
             *b = block;
             true
@@ -457,7 +524,7 @@ impl World {
     }
     /**Returns true if previously there was no block at this position and the placement was carried out.
     If there was already a block, then placing a different one is impossible nad function returns false*/
-    pub fn place_block(&mut self, x: usize, y: usize, z: usize, block: Block) -> bool {
+    pub fn update_place_block(&mut self, x: usize, y: usize, z: usize, block: Block) -> bool {
         self.update_block(x, y, z, move |b| {
             if b.is_air() {
                 *b = block;
@@ -469,7 +536,7 @@ impl World {
     }
     /**Returns true if previously there was block at this position and the removal was carried out.
     If there was no block, then no removal was necessary and function returns false*/
-    pub fn remove_block(&mut self, x: usize, y: usize, z: usize) -> bool {
+    pub fn update_remove_block(&mut self, x: usize, y: usize, z: usize) -> bool {
         self.update_block(x, y, z, move |b| {
             if !b.is_air() {
                 *b = Block::air();
@@ -507,7 +574,7 @@ impl World {
                 }
             }
 
-            Self::for_each_neighbour(self.width, self.depth, x, y, z, |neighbour_x, neighbour_y, neighbour_z, my_face| {
+            Self::for_each_neighbour(self.world_width(), self.world_depth(), x, y, z, |neighbour_x, neighbour_y, neighbour_z, my_face| {
                 let &neighbour = self.get_block(neighbour_x, neighbour_y, neighbour_z);
                 let neighbour_face = my_face.opposite();
 
@@ -545,10 +612,10 @@ impl World {
         }
     }
     pub fn is_position_in_bounds(&self, x: usize, y: usize, z: usize) -> bool {
-        y < CHUNK_HEIGHT && x < self.width * CHUNK_WIDTH && z < self.depth * CHUNK_DEPTH
+        y < CHUNK_HEIGHT && x < self.world_width() && z < self.world_depth()
     }
     pub fn is_point_in_bounds(&self, x: f32, y: f32, z: f32) -> bool {
-        0f32 <= x && 0f32 <= y && 0f32 <= z && y < CHUNK_HEIGHT as f32 && x < (self.width * CHUNK_WIDTH) as f32 && z < (self.depth * CHUNK_DEPTH) as f32
+        0f32 <= x && 0f32 <= y && 0f32 <= z && y < CHUNK_HEIGHT as f32 && x < self.world_width() as f32 && z < self.world_depth() as f32
     }
     fn for_each_neighbour<F: FnMut(usize, usize, usize, FaceOrientation)>(
         world_width: usize,
@@ -564,13 +631,13 @@ impl World {
         if y >= 1 {
             f(x, y - 1, z, FaceOrientation::YMinus)
         }
-        if x < world_width * CHUNK_WIDTH - 1 {
+        if x < world_width - 1 {
             f(x + 1, y, z, FaceOrientation::XPlus)
         }
         if x >= 1 {
             f(x - 1, y, z, FaceOrientation::XMinus)
         }
-        if z < world_depth * CHUNK_DEPTH - 1 {
+        if z < world_depth - 1 {
             f(x, y, z + 1, FaceOrientation::ZPlus)
         }
         if z >= 1 {
@@ -578,12 +645,12 @@ impl World {
         }
     }
     pub fn compute_faces(&mut self) {
-        for x in 0..self.width * CHUNK_WIDTH {
-            for z in 0..self.depth * CHUNK_DEPTH {
+        for x in 0..self.world_width() {
+            for z in 0..self.world_depth() {
                 for y in 0..CHUNK_HEIGHT {
                     let &block = self.get_block(x, y, z);
                     if block.show_my_faces() {
-                        Self::for_each_neighbour(self.width, self.depth, x, y, z, |neighbour_x, neighbour_y, neighbour_z, ort| {
+                        Self::for_each_neighbour(self.world_width(), self.world_depth(), x, y, z, |neighbour_x, neighbour_y, neighbour_z, ort| {
                             let neighbour = self.get_block(neighbour_x, neighbour_y, neighbour_z);
                             if neighbour.show_neighboring_faces() {
                                 self.push_block(x, y, z, ort, block);
@@ -606,7 +673,7 @@ impl World {
                     let adjacent_y = adjacent_y as usize;
                     if adjacent_y < CHUNK_HEIGHT {//we don't need to test other coordinates because
                         // normally it should be impossible for a player to reach them
-                        self.place_block(adjacent_x as usize, adjacent_y, adjacent_z as usize, block);
+                        self.update_place_block(adjacent_x as usize, adjacent_y, adjacent_z as usize, block);
                     }
                 }
                 Some(())
@@ -619,7 +686,7 @@ impl World {
     pub fn ray_cast_remove_block(&mut self, start: &[f32], distance_and_direction: &[f32]) {
         ray_cast(start, distance_and_direction, |block_x, block_y, block_z, adjacent_x, adjacent_y, adjacent_z| {
             if self.is_point_in_bounds(block_x, block_y, block_z) &&
-                self.remove_block(block_x as usize, block_y as usize, block_z as usize) {
+                self.update_remove_block(block_x as usize, block_y as usize, block_z as usize) {
                 Some(())
             } else {
                 None

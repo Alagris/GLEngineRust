@@ -13,7 +13,7 @@ use crate::render_gl::array_model::{ArrayModel, Primitive};
 use crate::render_gl::instanced_logical_model::InstancedLogicalModel;
 use crate::render_gl::buffer::{DynamicBuffer, AnyBuffer, ShaderStorageArrayBuffer};
 use crate::render_gl::texture::Filter::Nearest;
-use crate::blocks::block_properties::{STONE, GRASS, GLASS, CRAFTING, SLAB, ICE, LEAVES, TNT};
+use crate::blocks::block_properties::{STONE, GRASS, GLASS, CRAFTING, SLAB, ICE, LEAVES, TNT, BLOCKS, BEDROCK, DIRT, PLANK};
 use crate::render_gl::uniform_buffer::UniformBuffer;
 use crate::blocks::entities::{Entities, Entity, ZombieVariant};
 
@@ -71,29 +71,13 @@ pub fn run(
     entities.push(Entity::Zombie(ZombieVariant::Steve), &glm::vec3(5.,0.,0.),&glm::quat_angle_axis(2f32, &glm::vec3(0., 1., 0.)));
 
     let mut world = World::new(2,2, &gl);
-    world.set_block(1,1,1,STONE);
-    world.set_block(1,2,1,STONE);
-    world.set_block(1,1,2,STONE);
-    world.set_block(15,0,15,GRASS);
-    world.set_block(14,0,15,GRASS);
-    world.set_block(13,0,15,GRASS);
-    world.set_block(15,0,16,GRASS);
-    world.set_block(14,0,16,GRASS);
-    world.set_block(16,0,13,GRASS);
-    world.set_block(16,0,15,GRASS);
-    world.set_block(16,0,16,GRASS);
-    world.set_block(16,0,17,GRASS);
-    world.set_block(2,0,0, SLAB);
-    world.set_block(3,0,0,ICE);
-    world.set_block(4,0,0,LEAVES);
-    world.set_block(3,0,0,TNT);
-    world.set_block(3,1,3,CRAFTING);
-    world.set_block(3,2,3,GLASS);
-    world.set_block(3,3,3,GLASS);
-    world.set_block(3,2,4,GLASS);
-    world.set_block(3,3,4,GLASS);
+    world.no_update_fill_level(0,1,BEDROCK);
+    world.no_update_fill_level(1,1,DIRT);
+    world.no_update_fill_level(2,1,GRASS);
+    world.no_update_outline(5,2,5,5,5,5,PLANK);
+    world.compute_faces();
     world.gl_update_all_chunks();
-    // world.compute_faces();
+
     let mut model_mobs = InstancedLogicalModel::new(DynamicBuffer::new(entities.bone_slice(),&gl),&gl);
     let mut points = vec![VertexSizeAlphaClr::new((0.,0.,0.),64.,(0.,0.,0.,1.));64];
     let mut model_orbs = ArrayModel::new(DynamicBuffer::new(&points,&gl),&gl);
@@ -183,7 +167,6 @@ pub fn run(
         mobs_program.set_uniform_texture(mobs_texture_uniform, &zombie_texture, 0);
         model_mobs.draw_instanced_triangles(0,/*1 cube=6 quads=12 triangles=36 vertices*/36, model_mobs.ibo().len());
 
-        // shader_program.set_uniform_matrix4fv(mvp_uniform, mvp.as_slice());
         shader_program.set_used();
         shader_program.set_uniform_texture(texture_uniform, &texture, 0);
         world.gl_draw(chunk_location_uniform,&shader_program);

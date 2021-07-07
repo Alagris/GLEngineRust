@@ -36,6 +36,9 @@ pub const CRAFTING:Block = Block::new(10);
 pub const SLAB:Block = Block::new(11);
 pub const BRICK:Block = Block::new(12);
 pub const TNT:Block = Block::new(13);
+pub const COBBLESTONE:Block = Block::new(14);
+pub const BEDROCK:Block = Block::new(15);
+pub const GRAVEL:Block = Block::new(14);
 
 pub const BLOCKS:[BlockProp;34] = [
     BlockProp::regular("air", /*Some dummy value*/256),
