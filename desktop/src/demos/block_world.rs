@@ -34,7 +34,7 @@ pub fn run(
         gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
     let cl = ClGlContext::new(&gl_context)?;
-    let cl_physics_program = cl.compile_from_res(&res,"cl/physics.cl")?;
+    // let cl_physics_program = cl.compile_from_res(&res,"cl/physics.cl")?;
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/block")?;
     let mobs_program = render_gl::Program::from_res(&gl, &res, "shaders/mobs")?;
     let orb_program = render_gl::Program::from_res(&gl, &res, "shaders/orb")?;
