@@ -3,8 +3,8 @@ use crate::render_gl;
 use crate::render_gl::data::{VertexTexNorTan, f32_f32_f32, VertexAlphaClr, VertexSizeAlphaClr};
 use crate::render_gl::model::Model;
 use crate::resources::Resources;
-use failure::err_msg;
-use sdl2::video::Window;
+use failure::{err_msg, ResultExt};
+use sdl2::video::{Window, GLContext};
 use sdl2::{Sdl, TimerSubsystem};
 use crate::blocks::{World, Block};
 use crate::render_gl::instanced_model::InstancedModel;
@@ -17,6 +17,7 @@ use crate::blocks::block_properties::{STONE, GRASS, GLASS, CRAFTING, SLAB, ICE, 
 use crate::render_gl::uniform_buffer::UniformBuffer;
 use crate::blocks::{Entities, Entity, ZombieVariant};
 use crate::blocks::WorldSize;
+use crate::compute_cl::context::ClGlContext;
 
 pub fn run(
     gl: gl::Gl,
@@ -24,6 +25,7 @@ pub fn run(
     sdl: Sdl,
     window: Window,
     timer: TimerSubsystem,
+    gl_context:GLContext
 ) -> Result<(), failure::Error> {
     unsafe{
         gl.Enable(gl::CULL_FACE);
@@ -31,6 +33,8 @@ pub fn run(
         gl.Enable(gl::PROGRAM_POINT_SIZE);
         gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
+    let cl = ClGlContext::new(&gl_context)?;
+    let cl_physics_program = cl.compile_from_res(&res,"cl/physics.cl")?;
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/block")?;
     let mobs_program = render_gl::Program::from_res(&gl, &res, "shaders/mobs")?;
     let orb_program = render_gl::Program::from_res(&gl, &res, "shaders/orb")?;
@@ -95,7 +99,7 @@ pub fn run(
         (viewport.w as f32) / (viewport.h as f32),
         fov,
         0.1f32,
-        100f32,
+        200f32,
     );
     let event_pump = sdl.event_pump().map_err(err_msg)?;
     let mut input = render_gl::input::Input::new(event_pump);

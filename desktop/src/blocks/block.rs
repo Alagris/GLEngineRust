@@ -30,6 +30,9 @@ impl Block {
     pub fn weight(&self) -> u32 {
         (self.idx - 10).max(0)
     }
+    pub fn is_solid(&self) -> bool {
+        self.idx > 0
+    }
     pub fn is_transparent(&self) -> bool {
         self.idx < STONE.idx
     }

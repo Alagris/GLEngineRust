@@ -77,19 +77,19 @@ impl WorldSize {
         z: usize,
         mut f: F,
     ) {
-        if y < CHUNK_HEIGHT - 1 {
+        if y + 1 < CHUNK_HEIGHT {
             f(x, y + 1, z, FaceOrientation::YPlus)
         }
         if y >= 1 {
             f(x, y - 1, z, FaceOrientation::YMinus)
         }
-        if x < self.world_width() - 1 {
+        if x + 1< self.world_width() {
             f(x + 1, y, z, FaceOrientation::XPlus)
         }
         if x >= 1 {
             f(x - 1, y, z, FaceOrientation::XMinus)
         }
-        if z < self.world_depth() - 1 {
+        if z + 1< self.world_depth() {
             f(x, y, z + 1, FaceOrientation::ZPlus)
         }
         if z >= 1 {

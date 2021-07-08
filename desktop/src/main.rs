@@ -20,6 +20,7 @@ mod render_gl;
 mod resources;
 mod scene;
 mod physics;
+mod compute_cl;
 
 fn main() {
     if let Err(e) = scene::run() {

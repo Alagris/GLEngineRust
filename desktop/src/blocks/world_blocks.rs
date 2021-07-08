@@ -98,8 +98,44 @@ impl WorldBlocks {
             }
         }
     }
+    pub fn contains_solid_block(&self, from_x: usize, from_y: usize, from_z: usize, width: usize, height: usize, depth: usize) ->bool{
+        self.contains_solid_block_in(from_x,from_y,from_z,from_x+width,from_y+height,from_z+depth)
+    }
+    pub fn contains_solid_block_in(&self, from_x: usize, from_y: usize, from_z: usize, to_x: usize, to_y: usize, to_z: usize) ->bool{
+        for x in from_x..to_x {
+            for y in from_y..to_y {
+                for z in from_z..to_z {
+                    if self.get_block(x,y,z).is_solid(){
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+    pub fn hitbox_collision(&self,hitbox_from:&glm::Vec3,hitbox_to:&glm::Vec3)->[bool;6]{
+        let (start_x,start_y,start_z) = (hitbox_from[0] as usize,hitbox_from[1] as usize,hitbox_from[2] as usize);
+        let (end_x,end_y,end_z) = (hitbox_to[0] as usize, hitbox_to[1] as usize, hitbox_to[2] as usize);
+        let can_go_minus_x = if start_x>0{self.contains_solid_block_in(start_x-1,start_y,start_z,start_x,end_y,end_z)}else{false};
+        let can_go_plus_x = if end_x<self.size().world_width(){self.contains_solid_block_in(end_x,start_y,start_z,end_x+1,end_y,end_z)}else{false};
+        let can_go_minus_y = if start_y>0{self.contains_solid_block_in(start_x,start_y-1,start_z,end_x,start_y,end_z)}else{false};
+        let can_go_plus_y = if end_y<self.size().height(){self.contains_solid_block_in(start_x,end_y,start_z,end_x,end_y+1,end_z)}else{false};
+        let can_go_minus_z = if start_z>0{self.contains_solid_block_in(start_x,start_y,start_z-1,end_x,start_y,end_z)}else{false};
+        let can_go_plus_z = if end_z<self.size().height(){self.contains_solid_block_in(start_x,start_y,end_z,end_x,end_y,end_z+1)}else{false};
+        [can_go_minus_x,can_go_plus_x,can_go_minus_y,can_go_plus_y,can_go_minus_z,can_go_plus_z]
+    }
+    pub fn zero_out_velocity_vector_on_hitbox_collision(&self,velocity:&mut glm::Vec3,hitbox_from:&glm::Vec3,hitbox_to:&glm::Vec3){
+        let can_go_in_direction = self.hitbox_collision(hitbox_from,hitbox_to);
+        for axis in 0..3{
+            if !can_go_in_direction[axis*2] && hitbox_from[axis]+velocity[axis] <= hitbox_from[axis].floor(){
+                velocity[axis] = 0.
+            }else if !can_go_in_direction[axis*2+1] && hitbox_to[axis].ceil() <= hitbox_to[axis]+velocity[axis]  {
+                velocity[axis] = 0.
+            }
+        }
 
 
+    }
 
 
 }

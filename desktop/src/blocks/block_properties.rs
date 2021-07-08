@@ -2,7 +2,7 @@ use crate::blocks::{FaceOrientation, Block};
 
 pub struct BlockProp{
     name:&'static str,
-    texture_ids:[u32;6]
+    texture_ids:[u32;6],
 }
 
 impl BlockProp{

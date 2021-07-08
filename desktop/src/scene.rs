@@ -83,10 +83,11 @@ pub fn run() -> Result<(), failure::Error> {
         .resizable()
         .build()?;
     sdl.mouse().set_relative_mouse_mode(true);
-    let _gl_context = window.gl_create_context().map_err(err_msg)?;
+    let gl_context = window.gl_create_context().map_err(err_msg)?;
     let gl = gl::Gl::load_with(|s| {
         video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void
     });
+
     drain_gl_errors(&gl);
     unsafe {
         gl.DepthFunc(gl::LESS);
@@ -101,5 +102,5 @@ pub fn run() -> Result<(), failure::Error> {
         }
     }
 
-    crate::demos::block_world::run(gl, res, sdl, window, timer)
+    crate::demos::block_world::run(gl, res, sdl, window, timer, gl_context)
 }
