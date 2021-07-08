@@ -17,7 +17,13 @@ collada = "0.13.0"
 obj = "0.10.2"
 genmesh = "0.6.2"
 rand = "0.8.3"
-ocl = "0.19.3"
+[dependencies.cl-sys]
+version = "0.4.2"
+features = []
+[dependencies.cl3]
+version = "0.4.0"
+features = ["cl_khr_gl_sharing"]
+
 [features]
 gl_debug = ["gl/debug"]
 [build-dependencies]
