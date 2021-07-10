@@ -4,3 +4,4 @@ pub mod context;
 pub mod num;
 pub mod program;
 pub mod error;
+pub mod kernel;

@@ -47,6 +47,9 @@ impl<B, T, U> Buffer<B, T, U> where B: BufferType, U: BufferUsage {
     pub fn usage() -> gl::types::GLenum {
         U::BUFFER_USAGE
     }
+    pub fn id(&self) -> gl::types::GLuint{
+        self.vbo
+    }
     pub fn bind(&self) {
         unsafe {
             self.gl.BindBuffer(B::BUFFER_TYPE, self.vbo);

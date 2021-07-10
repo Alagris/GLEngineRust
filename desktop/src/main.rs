@@ -13,6 +13,7 @@ extern crate failure;
 extern crate render_gl_derive;
 #[macro_use]
 extern crate num_derive;
+extern crate cl_sys;
 
 mod blocks;
 mod demos;

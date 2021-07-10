@@ -17,7 +17,7 @@ use crate::blocks::block_properties::{STONE, GRASS, GLASS, CRAFTING, SLAB, ICE, 
 use crate::render_gl::uniform_buffer::UniformBuffer;
 use crate::blocks::{Entities, Entity, ZombieVariant};
 use crate::blocks::WorldSize;
-use crate::compute_cl::context::ClGlContext;
+use crate::compute_cl::context::Context;
 
 pub fn run(
     gl: gl::Gl,
@@ -33,8 +33,8 @@ pub fn run(
         gl.Enable(gl::PROGRAM_POINT_SIZE);
         gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
-    let cl = ClGlContext::new(&gl_context)?;
-    let cl_physics_program = cl.compile_from_res(&res,"cl/physics.cl")?;
+    let cl_context = Context::new(&gl_context)?;
+    // let cl_physics = cl_context.compile_from_res(&res, "cl/physics.cl")?;
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/block")?;
     let mobs_program = render_gl::Program::from_res(&gl, &res, "shaders/mobs")?;
     let orb_program = render_gl::Program::from_res(&gl, &res, "shaders/orb")?;
@@ -88,7 +88,7 @@ pub fn run(
     let mut model_orbs = ArrayModel::new(DynamicBuffer::new(&points,&gl),&gl);
     let model_matrix = glm::identity::<f32, 4>();
     let mut rotation = glm::quat_identity();
-    let mut location = glm::vec4(0f32, 2f32, 2f32, 0f32);
+    let mut location = glm::vec3(2f32, 5f32, 2f32);
     let mut block_in_hand = 2u32;
     let movement_speed = 0.005f32;
     let player_reach = 3f32;
@@ -142,7 +142,8 @@ pub fn run(
 
         let movement_vector = input.get_direction_unit_vector() * movement_speed * fps_counter.delta_f32();
         let inverse_rotation = glm::quat_inverse(&rotation);
-        let movement_vector = glm::quat_rotate_vec(&inverse_rotation, &movement_vector);
+        let mut movement_vector = glm::quat_rotate_vec3(&inverse_rotation, &movement_vector);
+        world.blocks().zero_out_velocity_vector_on_hitbox_collision(&mut movement_vector, &(location-glm::vec3(0.4f32,1.5,0.4)),&(location+glm::vec3(0.4f32,0.3,0.4)));
         location += movement_vector;
         if input.has_mouse_left_click()||input.has_mouse_right_click() {
             let ray_trace_vector = glm::vec4(0f32,0.,-player_reach, 0.);
@@ -158,8 +159,7 @@ pub fn run(
         // draw triangle
         color_buffer.clear(&gl);
 
-        let location3 = &glm::vec4_to_vec3(&location);
-        let v = glm::quat_to_mat4(&rotation) * glm::translation(&-location3);
+        let v = glm::quat_to_mat4(&rotation) * glm::translation(&-location);
 
         let m = model_matrix;
         matrices.mv = &v * m;

@@ -62,6 +62,10 @@ impl Resources {
         Ok(unsafe { ffi::CString::from_vec_unchecked(buffer) })
     }
 
+    pub fn load(&self, resource_name: &str) -> std::io::Result<String> {
+        std::fs::read_to_string(self.path(resource_name))
+    }
+
     pub fn has_file(&self, resource_name: &str) -> bool {
         self.path(resource_name).is_file()
     }

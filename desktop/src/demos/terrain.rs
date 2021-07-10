@@ -105,7 +105,7 @@ pub fn run(
     let susanne_model_matrix = glm::translation(&glm::vec3(2f32, 0f32, 2f32));
 
     let mut rotation = glm::quat_identity();
-    let mut location = glm::vec4(0f32, 2f32, 2f32, 0f32);
+    let mut location = glm::vec3(0f32, 2f32, 2f32);
     let mut light_location = glm::vec3(0f32, 2f32, 0f32);
     let mut light_strength = 20f32;
     let mut movement_speed = 0.01f32;
@@ -198,10 +198,9 @@ pub fn run(
         }
         let movement_vector =
             input.get_direction_unit_vector() * (movement_speed * fps_counter.delta_f32());
-        let movement_vector = glm::quat_rotate_vec(&glm::quat_inverse(&rotation), &movement_vector);
+        let movement_vector = glm::quat_rotate_vec3(&glm::quat_inverse(&rotation), &movement_vector);
         location += movement_vector;
-        let location3 = &glm::vec4_to_vec3(&location);
-        let v = glm::quat_to_mat4(&rotation) * glm::translation(&-location3);
+        let v = glm::quat_to_mat4(&rotation) * glm::translation(&-location);
 
         color_buffer.clear(&gl);
 

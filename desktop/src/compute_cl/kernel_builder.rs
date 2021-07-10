@@ -1,6 +1,10 @@
-use ocl::core::{Kernel, ArgVal, Mem, Error, Program, CommandQueue};
 use crate::compute_cl::buffer::Buffer;
 use crate::compute_cl::num::Num;
+use crate::compute_cl::program::Program;
+use cl_sys::*;
+use cl3::kernel::create_kernel;
+use crate::compute_cl::kernel::Kernel;
+use crate::compute_cl::error::Error;
 
 pub struct KernelBuilder {
     kernel: Kernel,
@@ -8,41 +12,25 @@ pub struct KernelBuilder {
 }
 
 impl KernelBuilder {
-    pub fn new<S: AsRef<str>>(program:&Program, name:S) -> Result<Self, Error> {
-        ocl::core::create_kernel(program, name).map(Self::from_kernel)
-    }
-    pub fn from_kernel(kernel: Kernel) -> Self {
+    pub fn new(kernel: Kernel) -> Self {
         Self { kernel, arg_idx: 0 }
     }
-    pub fn add(mut self, arg: ArgVal) -> ocl::core::Result<Self> {
+
+    pub fn add_mem<T>(mut self, arg: &Buffer<T>) -> Result<Self, Error> {
         let index = self.arg_idx;
         self.arg_idx += 1;
-        ocl::core::set_kernel_arg(&self.kernel, index, arg)?;
-        Ok(self)
-    }
+        let mem:cl_mem = arg.mem();
 
-    pub fn add_mem(self, arg: &Mem) -> ocl::core::Result<Self> {
-        self.add(ArgVal::mem(arg))
+        let status = unsafe { clSetKernelArg(self.kernel.cl_kernel(), index, std::mem::size_of::<cl_mem>(), (&mem) as *const cl_mem as *const c_void)};
+        Error::result(move ||self,status, ||format!("Failed setting memory buffer as argument {}",index))
     }
-    pub fn add_buff<T: Num>(self, arg: &Buffer<T>) -> ocl::core::Result<Self> {
-        self.add_mem(arg.as_core())
-    }
-    pub fn add_num<T: Num>(self, arg: T) -> ocl::core::Result<Self> {
-        self.add(ArgVal::scalar(&arg))
+    pub fn add_value<T>(mut self, arg: T) -> Result<Self, Error> {
+        let index = self.arg_idx;
+        self.arg_idx += 1;
+        let status = unsafe { clSetKernelArg(self.kernel.cl_kernel(), index, std::mem::size_of::<T>(), &arg as *const T as *const c_void)};
+        Error::result(move ||self,status, ||format!("Failed setting {} as argument {}",std::any::type_name::<T>(),index))
     }
     pub fn done(self) -> Kernel {
         self.kernel
-    }
-    pub fn enq(&self, queue:&CommandQueue, global_work_dimensions:&[usize]) -> ocl::core::Result<()> {
-        if global_work_dimensions.len()>3{
-            return Err(ocl::core::Error::from(format!("OpenCL has at most 3 work dimensions but provided shape is {:?}",global_work_dimensions)));
-        }
-        unsafe {
-            let mut tmp:[usize;3] = [1;3];
-            for (i,&d) in global_work_dimensions.iter().enumerate(){
-                tmp[i] = d;
-            }
-            ocl::core::enqueue_kernel(queue, &self.kernel, global_work_dimensions.len() as u32, None, &tmp, None, None::<ocl::core::Event>, None::<&mut ocl::core::Event>)
-        }
     }
 }
