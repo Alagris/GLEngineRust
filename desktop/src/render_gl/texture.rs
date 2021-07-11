@@ -53,24 +53,25 @@ impl Tex<Texture2D> {
         resource_name: &str,
         res: &Resources,
         gl: &gl::Gl) -> Result<Self, failure::Error> {
-        Self::from_res_with_filter(resource_name,res,Filter::Linear,gl)
+        Self::from_res_with_filter(resource_name,res,true, Filter::Linear,gl)
     }
     pub fn from_res_with_filter(
         resource_name: &str,
         res: &Resources,
+        flip:bool,
         filter:Filter,
         gl: &gl::Gl,
     ) -> Result<Self, failure::Error> {
         println!("Loading texture {}", resource_name);
-        Self::new_with_filter(&res.path(resource_name), filter, gl)
+        Self::new_with_filter(&res.path(resource_name), filter, flip,gl)
     }
     pub fn new(file: &Path, gl: &gl::Gl) -> Result<Self, failure::Error> {
-        Self::new_with_filter(file,Filter::Linear,gl)
+        Self::new_with_filter(file,Filter::Linear, true,gl)
     }
-    pub fn new_with_filter(file: &Path,filter:Filter, gl: &gl::Gl) -> Result<Self, failure::Error> {
+    pub fn new_with_filter(file: &Path,filter:Filter, flip:bool, gl: &gl::Gl) -> Result<Self, failure::Error> {
         let mut texture = 0;
         let img = image::open(file).map_err(err_msg)?;
-        let img = img.flipv();
+        let img = if flip{img.flipv()}else{img};
         let (color_scheme, data_type, internal_format):(gl::types::GLenum,gl::types::GLenum,gl::types::GLint) = match img.color(){
             ColorType::Rgb8 => (gl::RGB,gl::UNSIGNED_BYTE,gl::RGB as i32),
             ColorType::Rgba8 => (gl::RGBA,gl::UNSIGNED_BYTE,gl::RGBA as i32),
@@ -122,9 +123,9 @@ impl Tex<TextureCube> {
     ) -> Result<Self, failure::Error> {
         println!("Loading cubemap from: {:?}", files);
         let files = files.map(|f| res.path(f));
-        Self::new(files, gl)
+        Self::new(files, false, gl)
     }
-    pub fn new(files: [impl AsRef<Path>; 6], gl: &gl::Gl) -> Result<Self, failure::Error> {
+    pub fn new(files: [impl AsRef<Path>; 6], flip:bool, gl: &gl::Gl) -> Result<Self, failure::Error> {
         let mut texture = 0;
         let data: Result<Vec<DynamicImage>, _> = files
             .iter()
@@ -135,8 +136,8 @@ impl Tex<TextureCube> {
             gl.GenTextures(1, &mut texture);
             Self::bind_texture(gl, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
         }
-        for (i, img) in data.iter().enumerate() {
-            let img = img.flipv();
+        for (i, img) in data.into_iter().enumerate() {
+            let img = if flip{img.flipv()}else{img};
             unsafe {
                 gl.TexImage2D(
                     gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32,

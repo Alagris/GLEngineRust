@@ -279,24 +279,28 @@ impl Program {
     }
 
     pub fn set_uniform_matrix4fv(&self, uniform: UniformMatrix4fv, value: &[f32]) {
+        assert_eq!(value.len(), 4*4);
         unsafe {
             self.gl.UniformMatrix4fv(uniform.id, 1, gl::FALSE, value.as_ptr());
         }
     }
 
     pub fn set_uniform_matrix3fv(&self, uniform: UniformMatrix3fv, value: &[f32]) {
+        assert_eq!(value.len(), 3*3);
         unsafe {
             self.gl.UniformMatrix3fv(uniform.id, 1, gl::FALSE, value.as_ptr());
         }
     }
 
     pub fn set_uniform_vec3fv(&self, uniform: UniformVec3fv, value: &[f32]) {
+        assert_eq!(value.len(), 3);
         unsafe {
             self.gl.Uniform3fv(uniform.id, 1, value.as_ptr());
         }
     }
 
     pub fn set_uniform_vec4fv(&self, uniform: UniformVec4fv, value: &[f32]) {
+        assert_eq!(value.len(), 4);
         unsafe {
             self.gl.Uniform4fv(uniform.id, 1, value.as_ptr());
         }

@@ -1,5 +1,6 @@
 use gl;
 use crate::render_gl::gl_error::drain_gl_errors;
+use gl::Gl;
 
 /**
 There is a strict convention for GLSL attribute location.
@@ -327,6 +328,15 @@ impl VertexAttrib for f32 {
     const GL_TYPE: gl::types::GLenum = gl::FLOAT;
 }
 
+
+impl VertexAttribPointers for u8 {
+    fn vertex_attrib_pointers(gl: &Gl) {
+        unsafe{
+            u8::vertex_attrib_pointer(gl,1, 11,0);
+            gl.VertexAttribDivisor(11, 1);
+        }
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]

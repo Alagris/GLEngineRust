@@ -20,3 +20,4 @@ pub mod util;
 pub mod instanced_array_model;
 pub mod instanced_logical_model;
 pub mod uniform_buffer;
+pub mod font;

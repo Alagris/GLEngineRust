@@ -4,7 +4,7 @@ use crate::render_gl::data::VertexTexNorTan;
 use crate::render_gl::model::Model;
 use crate::resources::Resources;
 use failure::err_msg;
-use sdl2::video::Window;
+use sdl2::video::{Window, GLContext};
 use sdl2::{Sdl, TimerSubsystem};
 use crate::render_gl::buffer::BufferStaticDraw;
 use crate::render_gl::array_model::Primitive;
@@ -15,6 +15,7 @@ pub fn run(
     sdl: Sdl,
     window: Window,
     timer: TimerSubsystem,
+    _gl_context:GLContext
 ) -> Result<(), failure::Error> {
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/shader")?;
     let normal_mapping_program = render_gl::Program::from_res(&gl, &res, "shaders/normal_mapping")?;

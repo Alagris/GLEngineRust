@@ -18,6 +18,7 @@ use crate::render_gl::uniform_buffer::UniformBuffer;
 use crate::blocks::{Entities, Entity, ZombieVariant};
 use crate::blocks::WorldSize;
 use crate::compute_cl::context::Context;
+use crate::render_gl::font::AsciiFont;
 
 pub fn run(
     gl: gl::Gl,
@@ -38,9 +39,9 @@ pub fn run(
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/block")?;
     let mobs_program = render_gl::Program::from_res(&gl, &res, "shaders/mobs")?;
     let orb_program = render_gl::Program::from_res(&gl, &res, "shaders/orb")?;
-    let texture = render_gl::texture::Texture::from_res_with_filter("img/blocks.png", &res, Nearest, &gl)?;
-    let zombie_texture = render_gl::texture::Texture::from_res_with_filter("img/mobs.jpeg", &res, Nearest,&gl)?;
-
+    let texture = render_gl::texture::Texture::from_res_with_filter("img/blocks.png", &res, true,Nearest, &gl)?;
+    let zombie_texture = render_gl::texture::Texture::from_res_with_filter("img/mobs.jpeg", &res, true, Nearest,&gl)?;
+    let mut font = AsciiFont::new(&gl,&res,"img/bitmap_font_c.png")?;
     // set up shared state for window
     let mut viewport = render_gl::Viewport::for_window(900, 700);
     viewport.set_used(&gl);
@@ -89,7 +90,7 @@ pub fn run(
     let model_matrix = glm::identity::<f32, 4>();
     let mut rotation = glm::quat_identity();
     let mut location = glm::vec3(2f32, 5f32, 2f32);
-    let mut block_in_hand = 2u32;
+    let mut block_in_hand = Block::new(2u32);
     let movement_speed = 0.005f32;
     let player_reach = 3f32;
     let rotation_speed = 1f32;
@@ -137,7 +138,7 @@ pub fn run(
             );
         }
         if input.number() > -1{
-            block_in_hand = (input.number()+1) as u32
+            block_in_hand = Block::new((input.number()+1) as u32)
         }
 
         let movement_vector = input.get_direction_unit_vector() * movement_speed * fps_counter.delta_f32();
@@ -151,7 +152,7 @@ pub fn run(
             if input.has_mouse_left_click() {
                 world.ray_cast_remove_block(location.as_slice(), ray_trace_vector.as_slice());
             }else{
-                world.ray_cast_place_block(location.as_slice(), ray_trace_vector.as_slice(), Block::new(block_in_hand));
+                world.ray_cast_place_block(location.as_slice(), ray_trace_vector.as_slice(), block_in_hand);
             }
             world.gl_update_all_chunks();
         }
@@ -179,7 +180,7 @@ pub fn run(
         orb_program.set_used();
         model_orbs.draw_vertices(Primitive::Points, 64);
 
-
+        font.draw(block_in_hand.name(), -1., -1., 0.08,0.12);
         window.gl_swap_window();
     }
     Ok(())
