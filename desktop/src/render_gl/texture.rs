@@ -69,19 +69,22 @@ impl Tex<Texture2D> {
         Self::new_with_filter(file,Filter::Linear, true,gl)
     }
     pub fn new_with_filter(file: &Path,filter:Filter, flip:bool, gl: &gl::Gl) -> Result<Self, failure::Error> {
-        let mut texture = 0;
         let img = image::open(file).map_err(err_msg)?;
-        let img = if flip{img.flipv()}else{img};
-        let (color_scheme, data_type, internal_format):(gl::types::GLenum,gl::types::GLenum,gl::types::GLint) = match img.color(){
-            ColorType::Rgb8 => (gl::RGB,gl::UNSIGNED_BYTE,gl::RGB as i32),
-            ColorType::Rgba8 => (gl::RGBA,gl::UNSIGNED_BYTE,gl::RGBA as i32),
-            ColorType::Rgb16 => (gl::RGB,gl::UNSIGNED_SHORT,gl::RGB as i32),
-            ColorType::Rgba16 => (gl::RGBA,gl::UNSIGNED_SHORT,gl::RGBA as i32),
-            ColorType::Bgr8 => (gl::BGR,gl::UNSIGNED_BYTE,gl::BGR as i32),
-            ColorType::Bgra8 => (gl::BGRA,gl::UNSIGNED_BYTE,gl::BGRA as i32),
-            x => panic!("Invalid color scheme {:?} for image {:?}",x, file)
+        let img = if flip { img.flipv() } else { img };
+        let (color_scheme, data_type, internal_format): (gl::types::GLenum, gl::types::GLenum, gl::types::GLint) = match img.color() {
+            ColorType::Rgb8 => (gl::RGB, gl::UNSIGNED_BYTE, gl::RGB as i32),
+            ColorType::Rgba8 => (gl::RGBA, gl::UNSIGNED_BYTE, gl::RGBA as i32),
+            ColorType::Rgb16 => (gl::RGB, gl::UNSIGNED_SHORT, gl::RGB as i32),
+            ColorType::Rgba16 => (gl::RGBA, gl::UNSIGNED_SHORT, gl::RGBA as i32),
+            ColorType::Bgr8 => (gl::BGR, gl::UNSIGNED_BYTE, gl::BGR as i32),
+            ColorType::Bgra8 => (gl::BGRA, gl::UNSIGNED_BYTE, gl::BGRA as i32),
+            x => panic!("Invalid color scheme {:?} for image {:?}", x, file)
         };
         let data = img.as_bytes();
+        Self::new_from_bytes(filter, img.width() as i32, img.height() as i32,data,color_scheme, data_type, internal_format,gl)
+    }
+    fn new_from_bytes(filter:Filter, width:i32, height:i32, data:&[u8], color_scheme:gl::types::GLenum, data_type:gl::types::GLenum, internal_format:gl::types::GLint, gl: &gl::Gl) -> Result<Self, failure::Error> {
+        let mut texture = 0;
         unsafe {
             gl.GenTextures(1, &mut texture);
             Self::bind_texture(gl, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
@@ -96,8 +99,8 @@ impl Tex<Texture2D> {
                 gl::TEXTURE_2D,
                 0,
                 internal_format,
-                img.width() as i32,
-                img.height() as i32,
+                width,
+                height,
                 0,
                 color_scheme,
                 data_type,

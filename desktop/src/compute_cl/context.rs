@@ -97,17 +97,29 @@ impl Context {
         let mut status: cl_int = CL_INVALID_VALUE;
         let sources = &[src.as_ptr() as *const c_char];
         let lengths = &[src.len()];
+
         let program:cl_program = unsafe{clCreateProgramWithSource(self.context(), 1,sources.as_ptr(),lengths.as_ptr(),&mut status)};
+        if status != 0{
+            return Err(Error::new(status, String::from("Failed allocating OpenCL program from source")));
+        }
+        let options = b"-cl-std=CL1.1 -cl-mad-enable -Werror\0".as_ptr() as *const c_char;
+        let status = unsafe{
+            cl_sys::clBuildProgram(program,1,&self.device(),options,None,std::ptr::null_mut())
+        };
         Error::result(||Program::new(program),status,||{
             if status == CL_BUILD_PROGRAM_FAILURE {
                 let mut log_size = 0;
                 unsafe{
                     clGetProgramBuildInfo(program, self.device, CL_PROGRAM_BUILD_LOG, 0, std::ptr::null_mut(), &mut log_size);
                 }
-                let mut log = String::with_capacity(log_size);
-                unsafe{
+                let mut log = Vec::<u8>::with_capacity(log_size);
+                println!("Log size={}",log_size);
+                let log = unsafe{
                     clGetProgramBuildInfo(program, self.device, CL_PROGRAM_BUILD_LOG, log_size, log.as_mut_ptr() as *mut c_void, std::ptr::null_mut());
-                }
+                    log.set_len(log_size);
+                    String::from_utf8_unchecked(log)
+                };
+                println!("Log={}",log);
                 log
             }else{
                 String::from("Failed building OpenCL program from source")

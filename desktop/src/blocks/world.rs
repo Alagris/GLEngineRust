@@ -123,6 +123,11 @@ impl World {
             let (x, z) = self.size().chunk_idx_into_chunk_pos(chunk_idx);
             shader.set_uniform_vec3fv(chunk_location_uniform, &[(x * CHUNK_WIDTH) as f32, 0., (z * CHUNK_DEPTH) as f32]);
             chunk.gl_draw_opaque();
+        }
+        for (chunk_idx, chunk) in self.faces.iter().enumerate() {
+            assert!(chunk_idx < self.faces.len());
+            let (x, z) = self.size().chunk_idx_into_chunk_pos(chunk_idx);
+            shader.set_uniform_vec3fv(chunk_location_uniform, &[(x * CHUNK_WIDTH) as f32, 0., (z * CHUNK_DEPTH) as f32]);
             chunk.gl_draw_transparent();
         }
     }

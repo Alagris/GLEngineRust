@@ -19,6 +19,7 @@ use crate::blocks::{Entities, Entity, ZombieVariant};
 use crate::blocks::WorldSize;
 use crate::compute_cl::context::Context;
 use crate::render_gl::font::AsciiFont;
+use rand::random;
 
 pub fn run(
     gl: gl::Gl,
@@ -35,7 +36,8 @@ pub fn run(
         gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
     let cl_context = Context::new(&gl_context)?;
-    // let cl_physics = cl_context.compile_from_res(&res, "cl/physics.cl")?;
+    let cl_physics = cl_context.compile_from_res(&res, "cl/position_based_dynamics.cl")?;
+
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/block")?;
     let mobs_program = render_gl::Program::from_res(&gl, &res, "shaders/mobs")?;
     let orb_program = render_gl::Program::from_res(&gl, &res, "shaders/orb")?;
@@ -85,8 +87,16 @@ pub fn run(
     world.gl_update_all_chunks();
 
     let mut model_mobs = InstancedLogicalModel::new(DynamicBuffer::new(entities.bone_slice(),&gl),&gl);
-    let mut points = vec![VertexSizeAlphaClr::new((0.,0.,0.),64.,(0.,0.,0.,1.));64];
-    let mut model_orbs = ArrayModel::new(DynamicBuffer::new(&points,&gl),&gl);
+    let mut orbs = Vec::with_capacity(64);
+    for _ in 0..orbs.capacity(){
+        fn rand(max:f32)->f32{
+            max*random::<f32>()
+        }
+        orbs.push(VertexSizeAlphaClr::new((rand(16.),rand(8.),rand(16.)), 64., (rand(1.),rand(1.),rand(1.), 1.)));
+    }
+    let mut model_orbs = ArrayModel::new(DynamicBuffer::new(&orbs, &gl), &gl);
+    let cl_orbs = cl_context.buffer_from_gl(model_mobs.ibo(),cl_sys::CL_MEM_READ_WRITE)?;
+    let orbs_kernel = cl_physics.kernel_builder("test")?.add_mem(&cl_orbs)?.done();
     let model_matrix = glm::identity::<f32, 4>();
     let mut rotation = glm::quat_identity();
     let mut location = glm::vec3(2f32, 5f32, 2f32);
@@ -163,10 +173,11 @@ pub fn run(
         let v = glm::quat_to_mat4(&rotation) * glm::translation(&-location);
 
         let m = model_matrix;
+        println!("Inputs read");
         matrices.mv = &v * m;
         matrices.mvp = projection_matrix * &matrices.mv;
         matrices.update();
-
+        println!("Updated");
         entities.update(0,&glm::vec3((fps_counter.ticks() as f32/1000.).sin(),0.,0.), &glm::quat_angle_axis(fps_counter.ticks() as f32/1000., &glm::vec3(0., 1., 0.)));
         model_mobs.ibo_mut().update(entities.bone_slice());
         mobs_program.set_used();
@@ -182,6 +193,22 @@ pub fn run(
 
         font.draw(block_in_hand.name(), -1., -1., 0.08,0.12);
         window.gl_swap_window();
+
+        println!("OpenCL simulation");
+        unsafe{
+            gl.Finish();
+            cl_sys::clEnqueueAcquireGLObjects(cl_context.queue(), 1, &cl_orbs.mem(), 0, std::ptr::null(), std::ptr::null_mut());
+        }
+        // println!("Running kernel");
+        // orbs_kernel.enq(&cl_context,&[orbs.len()]);
+        // println!("Finishing");
+        unsafe{
+            cl_sys::clEnqueueReleaseGLObjects(cl_context.queue(), 1, &cl_orbs.mem(), 0, std::ptr::null(), std::ptr::null_mut());
+            // println!("Released");
+            // cl_sys::clFinish(cl_context.queue());
+            // println!("Finished");
+        }
+
     }
     Ok(())
 }
